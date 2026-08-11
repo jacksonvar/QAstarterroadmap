@@ -1,0 +1,1413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Testing mind map — manual and automation, foundation to pipeline</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Newsreader:opsz,wght@6..72,300;6..72,400;6..72,500;6..72,600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#101319; --ink2:#191D26; --ink3:#252A35;
+  --paper:#E9EDE9; --card:#FFFFFF; --rule:#CFD5CF; --rule2:#E2E7E2;
+  --tx:#161A21; --tx2:#565D66; --tx3:#7C838C;
+  --man:#0E6A61; --man-l:#DCEEEB; --man-d:#08423C;
+  --aut:#4740A8; --aut-l:#E4E3F6; --aut-d:#2A2569;
+  --brass:#B98A21; --brass-l:#F7EDD3;
+  --fail:#9A2540; --fail-l:#F7E3E7;
+  --dsp:"Bricolage Grotesque","Helvetica Neue",Arial,sans-serif;
+  --bdy:"Newsreader",Georgia,"Times New Roman",serif;
+  --mno:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  --wrap:1180px;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--tx);font-family:var(--bdy);font-size:17px;line-height:1.72;font-weight:400}
+h1,h2,h3,h4{font-family:var(--dsp);font-weight:700;letter-spacing:-.022em;line-height:1.05;margin:0}
+a{color:inherit}
+.wrap{max-width:var(--wrap);margin:0 auto;padding:0 24px}
+.eyebrow{font-family:var(--mno);font-size:11px;font-weight:500;letter-spacing:.18em;text-transform:uppercase;color:var(--tx3);margin:0}
+
+/* masthead */
+.mast{background:var(--ink);color:#F0F2EF;padding:52px 0 0;border-bottom:1px solid var(--ink3)}
+.mast .eyebrow{color:var(--brass)}
+.mast h1{font-size:clamp(2.1rem,5.2vw,3.7rem);margin:14px 0 0;max-width:20ch}
+.mast h1 em{font-style:normal;font-family:var(--bdy);font-weight:300;letter-spacing:-.01em}
+.lede{font-size:19px;font-weight:300;color:#B9BEB8;max-width:60ch;margin:18px 0 0}
+.stats{display:flex;flex-wrap:wrap;gap:0;margin:34px 0 0;padding:0;border-top:1px solid var(--ink3)}
+.stat{padding:16px 28px 20px 0;margin-right:28px;border-right:1px solid var(--ink3)}
+.stat:last-child{border-right:0}
+.stat dt{font-family:var(--mno);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#7B8280;margin:0}
+.stat dd{font-family:var(--dsp);font-weight:700;font-size:26px;margin:4px 0 0;color:#F0F2EF}
+
+/* controls */
+.bar{background:var(--ink2);color:#E6E9E4;padding:14px 0;position:sticky;top:0;z-index:40;border-bottom:1px solid var(--ink3)}
+.bar-in{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.chip{font-family:var(--mno);font-size:11px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;padding:7px 12px;border:1px solid #3A404C;background:transparent;color:#B9BEB8;border-radius:2px;cursor:pointer;transition:background .15s,color .15s,border-color .15s}
+.chip:hover{border-color:#5A6270;color:#F0F2EF}
+.chip[aria-pressed="true"]{background:var(--brass);border-color:var(--brass);color:#191300}
+.chip.man[aria-pressed="true"]{background:#2FA394;border-color:#2FA394;color:#04241F}
+.chip.aut[aria-pressed="true"]{background:#8A82E8;border-color:#8A82E8;color:#12103A}
+.srch{flex:1;min-width:180px;font-family:var(--mno);font-size:12px;padding:8px 12px;background:var(--ink);border:1px solid #3A404C;color:#F0F2EF;border-radius:2px}
+.srch::placeholder{color:#6C7480}
+.srch:focus,.chip:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+.sep{width:1px;height:22px;background:#3A404C}
+
+/* mind map */
+.mapsec{background:var(--ink);padding:0 0 8px}
+.mapnote{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:20px 0 10px}
+.mapnote p{margin:0;font-size:14px;color:#8D9490;font-family:var(--mno);letter-spacing:.02em}
+.mapscroll{overflow-x:auto;overflow-y:hidden;padding:0 24px 20px;-webkit-overflow-scrolling:touch}
+#map{display:block;width:100%;min-width:1180px;height:auto}
+#map text{font-family:var(--mno)}
+.leaf{cursor:pointer}
+.leaf rect{transition:fill .16s,stroke .16s}
+.leaf:hover rect{stroke:var(--brass)}
+.leaf.on rect{stroke:var(--brass);stroke-width:2}
+.leaf.dim{opacity:.22}
+.branchline{fill:none;stroke-linecap:round}
+
+/* reader */
+.readsec{padding:44px 0 20px}
+.readgrid{display:grid;grid-template-columns:1fr;gap:0}
+.card{background:var(--card);border:1px solid var(--rule);border-radius:3px;overflow:hidden}
+.chead{padding:26px 30px 22px;border-bottom:1px solid var(--rule2);display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap}
+.cid{font-family:var(--mno);font-size:12px;font-weight:700;letter-spacing:.06em;padding:6px 9px;border-radius:2px;white-space:nowrap}
+.cid.man{background:var(--man-l);color:var(--man-d)}
+.cid.aut{background:var(--aut-l);color:var(--aut-d)}
+.chead h2{font-size:clamp(1.5rem,3.2vw,2.1rem);flex:1;min-width:240px}
+.crumb{font-family:var(--mno);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--tx3);margin:0 0 8px;width:100%;order:-1}
+.cbody{padding:26px 30px 34px}
+.blk{margin:0 0 30px}
+.blk:last-child{margin-bottom:0}
+.blabel{font-family:var(--mno);font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--tx3);margin:0 0 12px;padding-bottom:7px;border-bottom:1px solid var(--rule2)}
+.blk p{margin:0 0 14px;max-width:74ch}
+.blk p:last-child{margin-bottom:0}
+ol.steps{margin:0;padding:0;list-style:none;counter-reset:st}
+ol.steps li{counter-increment:st;position:relative;padding:0 0 12px 46px;max-width:74ch}
+ol.steps li:before{content:counter(st,decimal-leading-zero);position:absolute;left:0;top:3px;font-family:var(--mno);font-size:11px;font-weight:700;color:var(--brass);letter-spacing:.04em}
+ol.steps li:after{content:"";position:absolute;left:15px;top:22px;bottom:0;width:1px;background:var(--rule2)}
+ol.steps li:last-child:after{display:none}
+.ex{background:var(--brass-l);border-left:3px solid var(--brass);padding:18px 22px;border-radius:0}
+.ex p{max-width:70ch}
+.ex .who{font-family:var(--mno);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#6B5210;margin:0 0 8px}
+.iv{background:#F4F6F3;border:1px solid var(--rule2);padding:20px 24px;font-size:17.5px}
+.iv:before{content:"“";font-family:var(--bdy);font-size:52px;line-height:0;color:var(--tx3);display:block;height:22px}
+ul.pits{margin:0;padding:0;list-style:none}
+ul.pits li{position:relative;padding:0 0 10px 26px;max-width:74ch;font-size:16.5px}
+ul.pits li:before{content:"×";position:absolute;left:4px;top:1px;font-family:var(--mno);font-weight:700;color:var(--fail)}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin:0}
+.tag{font-family:var(--mno);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--tx2);border:1px solid var(--rule);padding:4px 8px;border-radius:2px}
+.nav{display:flex;justify-content:space-between;gap:12px;margin:18px 0 0}
+.nbtn{font-family:var(--mno);font-size:11px;letter-spacing:.1em;text-transform:uppercase;background:var(--card);border:1px solid var(--rule);color:var(--tx);padding:11px 15px;border-radius:2px;cursor:pointer;max-width:48%;text-align:left;line-height:1.4}
+.nbtn:hover{border-color:var(--tx2)}
+.nbtn span{display:block;font-family:var(--bdy);font-size:15px;letter-spacing:0;text-transform:none;color:var(--tx2);margin-top:3px}
+.nbtn:last-child{text-align:right}
+
+/* index / all */
+.allsec{padding:34px 0 70px}
+.allhead{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin:0 0 22px;padding-bottom:14px;border-bottom:2px solid var(--tx)}
+.allhead h2{font-size:1.7rem}
+.grp{margin:0 0 30px}
+.gbar{display:flex;align-items:baseline;gap:12px;margin:0 0 10px}
+.gbar h3{font-size:1.05rem;font-family:var(--mno);font-weight:700;letter-spacing:.02em;text-transform:uppercase;font-size:12px}
+.gbar .rule{flex:1;height:1px;background:var(--rule)}
+.gbar .ct{font-family:var(--mno);font-size:11px;color:var(--tx3)}
+details.ent{border-bottom:1px solid var(--rule2);background:transparent}
+details.ent summary{list-style:none;cursor:pointer;display:flex;gap:14px;align-items:baseline;padding:11px 4px;font-family:var(--dsp);font-weight:500;font-size:17px}
+details.ent summary::-webkit-details-marker{display:none}
+details.ent summary:hover{background:#E1E6E1}
+details.ent summary .n{font-family:var(--mno);font-size:11px;color:var(--tx3);min-width:56px}
+details.ent summary .arw{margin-left:auto;font-family:var(--mno);color:var(--tx3);font-size:12px}
+details.ent[open] summary .arw{transform:rotate(90deg);display:inline-block}
+.entbody{padding:4px 4px 26px 74px}
+.entbody .blk{margin-bottom:22px}
+.miss{font-family:var(--mno);font-size:13px;color:var(--tx2);padding:20px 0}
+
+footer{background:var(--ink);color:#8D9490;padding:30px 0 46px;font-family:var(--mno);font-size:11.5px;letter-spacing:.04em;line-height:1.9}
+footer b{color:#E6E9E4;font-weight:500}
+
+@media(max-width:720px){
+  body{font-size:16px}
+  .mast{padding-top:34px}
+  .stat{padding-right:18px;margin-right:18px}
+  .chead,.cbody{padding-left:18px;padding-right:18px}
+  .entbody{padding-left:18px}
+  ol.steps li{padding-left:38px}
+}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+@media print{
+  body{background:#fff;font-size:11pt}
+  .bar,.mapsec,.nav,.mapnote{display:none!important}
+  .mast{background:#fff;color:#000;border-bottom:2px solid #000;padding-top:0}
+  .mast .lede,.stat dd,.stat dt{color:#333}
+  .mast h1{font-size:26pt}
+  .stats{border-color:#bbb}.stat{border-color:#bbb}
+  details.ent{page-break-inside:avoid}
+  details.ent .entbody{display:block!important}
+  .readsec{display:none}
+  footer{background:#fff;color:#555}
+  .ex{background:#f6f6f6}
+}
+</style>
+</head>
+<body>
+
+<header class="mast">
+  <div class="wrap">
+    <p class="eyebrow">QA reference sheet &middot; 53 concepts &middot; manual + automation</p>
+    <h1>Software testing, <em>from first principles to the pipeline</em></h1>
+    <p class="lede">Every concept below is laid out in the order you should actually learn it. Click any leaf on the map to read the deep explanation, the step-by-step process, a real project example, and the answer you would give out loud in an interview.</p>
+    <dl class="stats">
+      <div class="stat"><dt>Concepts</dt><dd>53</dd></div>
+      <div class="stat"><dt>Tracks</dt><dd>2</dd></div>
+      <div class="stat"><dt>Levels</dt><dd>3 + 3</dd></div>
+      <div class="stat"><dt>Steps documented</dt><dd id="stepct">—</dd></div>
+    </dl>
+  </div>
+</header>
+
+<div class="bar">
+  <div class="wrap bar-in">
+    <button class="chip" id="t-all" aria-pressed="true">All</button>
+    <button class="chip man" id="t-man" aria-pressed="false">Manual</button>
+    <button class="chip aut" id="t-aut" aria-pressed="false">Automation</button>
+    <span class="sep"></span>
+    <button class="chip" id="l-0" aria-pressed="true">L1&ndash;L3</button>
+    <button class="chip" id="l-1" aria-pressed="false">L1</button>
+    <button class="chip" id="l-2" aria-pressed="false">L2</button>
+    <button class="chip" id="l-3" aria-pressed="false">L3</button>
+    <input class="srch" id="q" type="search" placeholder="search concept, tool or keyword">
+    <button class="chip" id="expand">Open all</button>
+    <button class="chip" id="prn">Print / PDF</button>
+  </div>
+</div>
+
+<section class="mapsec" aria-label="Mind map">
+  <div class="wrap mapnote">
+    <p id="mapcount">&nbsp;</p>
+    <p>click a leaf to read it &middot; scroll sideways on narrow screens</p>
+  </div>
+  <div class="mapscroll">
+    <svg id="map" viewBox="0 0 1440 400" role="img" aria-labelledby="mtitle mdesc">
+      <title id="mtitle">Mind map of software testing concepts</title>
+      <desc id="mdesc">A branching map with a central root, a manual testing branch and an automation testing branch, each split into three difficulty levels containing individual concepts.</desc>
+    </svg>
+  </div>
+</section>
+
+<section class="readsec" aria-label="Concept detail">
+  <div class="wrap">
+    <div id="reader" class="card"></div>
+    <div class="nav">
+      <button class="nbtn" id="prev"></button>
+      <button class="nbtn" id="next"></button>
+    </div>
+  </div>
+</section>
+
+<section class="allsec" aria-label="All concepts">
+  <div class="wrap">
+    <div class="allhead">
+      <h2>Full reference</h2>
+      <p class="eyebrow">everything expanded prints cleanly to PDF</p>
+    </div>
+    <div id="all"></div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <b>How to use this file.</b> Learn manual L1 and L2 before touching a tool. Do automation L1 before Selenium.<br>
+    L3 on both sides is what separates a two-year profile from a five-year one.<br>
+    Offline and self-contained &mdash; keep it, edit it, print it. Fonts fall back to system faces without a connection.
+  </div>
+</footer>
+<script>
+window.C = window.C || [];
+window.C.push(
+{id:"MT-1.01",tr:"man",lv:1,t:"What software testing actually is",
+k:["definition","quality","qa basics","objective"],
+d:["Testing is the disciplined comparison of what the software does against what it is supposed to do, plus the deliberate search for the gap between them. Most beginners describe it as finding bugs. That is only half of it. The other half is building justified confidence: at the end of a cycle somebody has to be able to say, with evidence, that this build is safe to ship. Both halves matter, and they pull in different directions, which is why prioritisation is the real skill.",
+"A useful mental model is that every test is an experiment with a prediction. You decide the expected result before you execute, because deciding afterwards means you will unconsciously accept whatever the software shows you. That single habit separates a tester from a person clicking around. The expected result comes from a source of truth: the requirement, the acceptance criteria, the design, a standard, or the behaviour of the previous release."],
+s:["Read the requirement or user story and identify what the user is trying to achieve",
+"Write down the expected result before you touch the application",
+"Prepare the test data and the environment the test needs",
+"Execute the steps exactly as documented so anyone can reproduce them",
+"Compare actual against expected, and treat every difference as a finding until proven otherwise",
+"Log a defect with steps, evidence, environment and build number",
+"Retest on the fixed build and run the surrounding regression to prove nothing else broke"],
+ex:"On an online course platform, the requirement said a learner who completes 100 percent of lessons gets a certificate. The developer tested with a course of 10 lessons and it worked. The tester predicted the expected result for a course where one lesson had been unpublished mid-batch, so 100 percent completion was mathematically impossible. The certificate never issued and the learner was stuck. That defect existed only because the expected result was defined from the requirement, not from the demo.",
+iv:"For me testing has two jobs. The first is finding defects, and the second is producing evidence that the release is safe, because someone has to sign off. The habit I care about most is defining the expected result from the requirement before I execute, not after I see the screen, otherwise you just confirm whatever the application shows you. So my flow is: understand the requirement, define expected behaviour, prepare data, execute, compare, log with evidence, then retest and regress. That way every defect I raise is reproducible and every pass I report is defensible.",
+p:["Deciding the expected result after seeing the actual result, which quietly validates the bug",
+"Reporting only pass or fail counts with no statement about remaining risk",
+"Treating testing as a phase that starts after coding instead of an activity that starts at the requirement"]},
+
+{id:"MT-1.02",tr:"man",lv:1,t:"Verification versus validation",
+k:["verification","validation","review","v model"],
+d:["Verification asks whether we are building the product right. It works on artifacts rather than on running software: requirements, designs, test cases, code standards. Validation asks whether we are building the right product. It needs a running build and a real business flow, and it ends with a user or product owner agreeing that this solves their problem.",
+"The pair matters because they catch completely different failures. Verification catches a misunderstood requirement, a missing error case in the design, a test case that tests the wrong thing. Validation catches software that meets a written specification perfectly and is still useless. In the V model the two sit as mirrored sides: every verification activity on the left has a matching validation activity on the right, which is exactly why the model is drawn that way. Verification is far cheaper per defect, so a team that skips reviews to save time pays for it several times over at system test."],
+s:["Verification: review the requirement document and list every ambiguity, contradiction and missing negative case",
+"Verification: walk through the design and confirm each requirement has a place to live",
+"Verification: peer review the test cases against the acceptance criteria",
+"Verification: static analysis of code against standards before it is merged",
+"Validation: deploy the build to a realistic environment with realistic data",
+"Validation: execute the end to end business flow the way a real user would",
+"Validation: get formal user acceptance sign off against the original business need"],
+ex:"On an insurance quotation project the requirement said premium equals base rate times risk factor. Verification during requirement review caught that nobody had defined the behaviour when risk factor was zero for a brand new vehicle class. That was one question in a two hour review. Had it slipped through, validation would have found it three weeks later as a divide by zero crash in UAT, with a release date already announced.",
+iv:"Verification is are we building it right, validation is are we building the right thing. Verification is static work on documents, design and test cases, and it happens through reviews, walkthroughs and inspections. Validation needs a running build and ends with the business confirming it actually solves their problem. I lean hard on verification because a defect caught in a requirement review costs a fraction of the same defect caught in UAT, and in my experience most of the expensive escapes were never coding mistakes, they were requirement ambiguities nobody questioned early.",
+p:["Calling a requirement review a formality and signing it without raising a single question",
+"Assuming that passing every written test case means the product is validated",
+"Skipping documented review findings, so the same ambiguity returns next release"]},
+
+{id:"MT-1.03",tr:"man",lv:1,t:"Error, defect, bug, failure",
+k:["error","defect","bug","failure","terminology","rca"],
+d:["These four words describe the same problem at four points in its life, and interviewers use them to check whether you think in terms of cause or only in terms of symptom. An error is the human mistake: a wrong assumption, a misread requirement, a typo. A defect is that mistake now sitting inside an artifact, in code, in a document or in configuration. A bug is a defect that testing has surfaced and reproduced. A failure is the defect actually producing wrong behaviour for someone, usually in production.",
+"The chain matters practically. A defect can sit in code for years without ever becoming a failure because nobody executes that path. That is why untested code is not the same as working code. It also means that fixing the bug is not the end of the job: the useful question is which error produced it, because that is the only level at which you can stop the next ten from appearing."],
+s:["Error: someone makes a wrong assumption, for example that a phone number is always ten digits",
+"Defect: that assumption becomes a hardcoded validation rule in the code",
+"Bug: a tester enters an international number, sees the rejection, and reproduces it",
+"Failure: an overseas customer cannot register at all on the live site",
+"Trace the bug back through the defect to the original error during root cause analysis",
+"Classify the root cause as requirement, design, code, data or environment",
+"Add a preventive control, such as a checklist item or a shared validation library"],
+ex:"A logistics portal rejected pin codes starting with zero. The error was an assumption that a pin code is a number. The defect was storing it as an integer, which silently dropped the leading zero. The bug appeared when a tester used a real Kerala pin code. The failure was six weeks of shipments routed to the wrong hub. The fix took ten minutes, the root cause analysis produced a standing rule that identifiers are always strings.",
+iv:"They are the same problem at four stages. Error is the human mistake, defect is that mistake now living in the code or the document, bug is the defect once testing has reproduced it, and failure is the defect actually hurting a user in production. I care about the distinction because a bug fix only removes one instance, whereas identifying the error behind it can remove a whole class. In one project a leading zero being dropped from pin codes traced back to storing identifiers as integers, and the outcome was a standing convention rather than a single patch.",
+p:["Using bug and failure interchangeably in reports, which hides whether customers were affected",
+"Closing a defect without recording the root cause category, so trends can never be analysed",
+"Assuming code with no reported failures is defect free, when it may simply be unexecuted"]},
+
+{id:"MT-1.04",tr:"man",lv:1,t:"The seven principles of testing",
+k:["principles","istqb","pesticide paradox","defect clustering"],
+d:["These seven statements are the compressed experience of the profession, and they are the most quoted items in any ISTQB style interview. Testing shows the presence of defects, never their absence. Exhaustive testing is impossible, so prioritisation is mandatory rather than optional. Early testing saves time and money, which is the whole argument for shift left. Defects cluster, so a small number of modules will produce most of your bugs. The pesticide paradox says that repeating the same tests stops finding new defects. Testing is context dependent, because a payment gateway and a game are not tested the same way. And absence of errors is a fallacy: a defect free product can still be commercially useless.",
+"They are not trivia. Each principle maps to a decision you make weekly, which is the framing that makes an interviewer take you seriously rather than assuming you memorised a list."],
+s:["Accept you can never prove the product is defect free, and report residual risk instead",
+"Replace any ambition of full coverage with a risk based priority order",
+"Get involved at requirement stage so defects are caught while they are cheap",
+"Use defect history to identify clustered modules and give them deeper coverage",
+"Refresh, rewrite and retire test cases periodically to defeat the pesticide paradox",
+"Adapt depth, types and exit criteria to the domain and its regulatory context",
+"Validate the business value of the product, not just its conformance to the specification"],
+ex:"On a school management product, four years of defect data showed that the fee module produced roughly forty percent of all defects while being twelve percent of the code. Defect clustering justified giving fees a dedicated regression suite and a mandatory design review, while the static content pages dropped to smoke only. Cycle time fell and escaped defects fell at the same time, because effort followed evidence rather than being spread evenly.",
+iv:"I treat them as decision rules rather than a list. Exhaustive testing being impossible is why I prioritise by risk. Defect clustering is why I check historical defect density before planning coverage. The pesticide paradox is why I rewrite part of the regression suite every few releases instead of running the same three hundred cases forever. Testing being context dependent is why my exit criteria for a payment flow look nothing like my criteria for a marketing page. And absence of errors being a fallacy is the reminder that a technically clean build can still fail the business.",
+p:["Reciting the seven principles without being able to name a decision each one changed",
+"Running an unchanged regression pack for years and reporting the falling defect count as improving quality",
+"Spreading test effort evenly across modules when defect history clearly points at a few"]},
+
+{id:"MT-1.05",tr:"man",lv:1,t:"SDLC and its models",
+k:["sdlc","waterfall","v model","agile","spiral","incremental"],
+d:["The software development life cycle is the sequence a product moves through from idea to retirement: requirement, analysis, design, build, test, deploy, maintain. What changes between models is not the activities but their ordering, their overlap and how much change they tolerate once started.",
+"Waterfall runs each phase once, in order, with heavy documentation and a late, expensive feedback loop. The V model keeps that order but attaches a test level to each development phase, so test design starts early even though execution stays late. Incremental and iterative models ship usable slices and revisit them. Spiral wraps everything in explicit risk analysis per loop, which suits large, uncertain, safety adjacent programmes. Agile compresses the whole loop into a sprint and accepts that requirements will change. As a tester you need to know which model you are in, because it determines when you get information, when you get a build, and how much of your plan can be fixed in advance."],
+s:["Identify the model in use and where the testing gate sits in it",
+"Requirement phase: participate and produce testable acceptance criteria",
+"Design phase: derive the test approach and start high level test design",
+"Build phase: developers unit test while you finalise cases and prepare data",
+"Test phase: execute levels in sequence and manage the defect cycle",
+"Deploy phase: run a production sanity or smoke check after release",
+"Maintenance: regression test every patch and enhancement against the live baseline"],
+ex:"A hospital information system ran on the V model because of regulatory audit needs. That meant the system test cases were written and formally reviewed while the developers were still coding, so the review found four missing negative scenarios in the patient discharge flow before a single line was executed. The same team later moved the patient mobile app to Scrum, because there the requirement genuinely changed every sprint and heavy up front documents were waste.",
+iv:"The activities are constant, what changes is sequencing and tolerance for change. Waterfall does each phase once with a very late feedback loop. The V model pairs every development phase with a test level, so test design starts early even though execution is still late, which suits regulated work. Agile compresses the whole cycle into a sprint and expects change. I care because the model decides when I get requirements and builds. On a regulated hospital product the V model let us review system test cases before coding finished, and that review alone caught missing negative scenarios in the discharge flow.",
+p:["Applying a waterfall documentation load inside a two week sprint and calling it process maturity",
+"Waiting for a formal signed requirement in an agile team instead of pulling clarity from the story conversation",
+"Not knowing which model the project claims to follow, which makes your test plan fit nothing"]},
+
+{id:"MT-1.06",tr:"man",lv:1,t:"STLC — the six phases of testing",
+k:["stlc","test life cycle","entry criteria","exit criteria","closure"],
+d:["The software testing life cycle is the testing view of the project, and every phase has entry criteria, activities, deliverables and exit criteria. Naming those four things for each phase is what makes an answer sound like experience rather than recitation.",
+"Requirement analysis produces the list of testable and non testable items plus a query log. Test planning produces the plan: scope, approach, effort, resources, schedule, risks and the criteria that let you start and stop. Test case design produces the cases, the test data and the traceability matrix. Environment setup produces a usable environment with a deployed build, data and access, and it is the phase most often underestimated because it depends on other teams. Test execution produces the executed cases, the defect log and daily status. Test closure produces the exit criteria evaluation, the metrics report and the lessons learned. The phases overlap in agile but none of them disappear."],
+s:["Requirement analysis: study requirements, mark what is testable, raise a query log, identify automation candidates",
+"Test planning: define scope, approach, effort estimate, tools, roles, schedule, risks, entry and exit criteria",
+"Test case design: write cases and scripts, prepare test data, build the requirement traceability matrix, get them reviewed",
+"Environment setup: request servers, deploy the build, load data, confirm access, run a smoke test to accept the environment",
+"Test execution: execute by priority, mark status, log defects, retest fixes, run regression, publish daily status",
+"Test closure: evaluate exit criteria, compute metrics, archive artifacts, run the retrospective, record lessons learned",
+"Carry forward the lessons into the next release plan so closure is not a formality"],
+ex:"On a payments release the team treated environment setup as a one line task. The build reached the test environment four days late because the sandbox certificate had expired and nobody owned it. After that, the STLC checklist for that project made environment readiness an explicit phase with a named owner and its own entry criteria, and the next three releases started on schedule.",
+iv:"Six phases, each with entry criteria, activities, deliverables and exit criteria. Requirement analysis gives me a testability review and a query log. Planning gives me the plan with scope, estimate, risks and the entry and exit criteria. Design gives me cases, data and the traceability matrix. Environment setup gives me a smoke tested environment, and that is the phase that most often slips because it depends on other teams. Execution gives me results, defects and daily status. Closure gives me the exit criteria evaluation, metrics and lessons learned. In agile they overlap inside the sprint but none of them disappear.",
+p:["Listing the six phases but not being able to state a single exit criterion",
+"Starting execution on an environment that was never smoke tested and then blaming the build",
+"Treating closure as sending a final email instead of producing metrics and lessons"]},
+
+{id:"MT-1.07",tr:"man",lv:1,t:"Test artifacts — plan, scenario, case, RTM",
+k:["test plan","test case","test scenario","rtm","traceability"],
+d:["Four documents, four different jobs, and mixing them up is the fastest way to look inexperienced. The test plan is a management document: what is in scope, what is out, approach, environment, resources, schedule, risks, entry and exit criteria. A test scenario is a single line describing what will be tested, usually one per requirement or acceptance criterion. A test case is the executable detail: identifier, precondition, steps, test data, expected result, actual result, status. The requirement traceability matrix maps every requirement to the scenarios and cases that cover it, and to the defects raised against it.",
+"The RTM is the artifact people skip and then regret. Forward traceability proves every requirement has coverage. Backward traceability proves no test exists without a requirement behind it, which is how you find gold plating. When scope changes mid release, the RTM is the only fast way to answer which tests are now affected."],
+s:["Write the test plan and get it reviewed and baselined before design starts",
+"Derive one test scenario per requirement or acceptance criterion",
+"Expand each scenario into positive, negative and boundary test cases",
+"Give every case an ID, precondition, clear numbered steps, explicit test data and one expected result",
+"Keep steps atomic so a different tester gets an identical outcome",
+"Build the RTM linking requirement ID to scenario ID to case ID to defect ID",
+"Peer review artifacts, then update the RTM every time scope changes"],
+ex:"A banking release added a new KYC rule three days before code freeze. Because the RTM was current, the lead answered in ten minutes that the change touched nine requirements, forty one test cases and two automated suites. Without it the team had previously spent a full day guessing at impact and still missed a downstream statement generation case.",
+iv:"The plan is the management document with scope, approach, schedule, risks and entry and exit criteria. A scenario is one line about what to test, a case is the detailed how with precondition, steps, data and expected result. The RTM maps requirements to scenarios, cases and defects. I insist on the RTM because it answers two questions instantly: is every requirement covered, and does every test trace back to a requirement. When a late scope change arrived on a banking release, the RTM let us state the impact as nine requirements and forty one cases within minutes instead of guessing for a day.",
+p:["Writing a test case with a vague expected result such as should work correctly",
+"Combining five unrelated checks into one case, so a failure cannot be pinpointed",
+"Building the RTM once at the start and never updating it after scope changes"]},
+
+{id:"MT-1.08",tr:"man",lv:1,t:"The bug life cycle",
+k:["defect life cycle","jira","status","triage","reopen"],
+d:["The defect life cycle is the set of states a bug moves through and the rules for who may move it. New means logged and awaiting triage. Assigned means an owner exists. Open means the developer has accepted and is working. Fixed means resolved in code and available in a build. Retest means a tester is verifying on that build. Closed means verified as working, and Reopened means it failed verification.",
+"The side states are where the professional judgement lives. Duplicate needs a link to the original. Rejected or not a bug needs a written reason, and if you disagree you escalate with evidence, not with tone. Deferred means real but not in this release, and it must carry a target. Cannot reproduce usually means the report was missing environment, data, build number or a video, so treat it as feedback on your own reporting. A good defect report is the whole game: title that states the symptom, steps that are minimal and reproducible, expected versus actual, evidence, environment, build, severity and priority."],
+s:["New: log with a precise title, minimal reproducible steps, expected versus actual, evidence, environment and build",
+"Assigned: lead or triage forum assigns an owner and confirms severity and priority",
+"Open: developer accepts, reproduces and starts the fix",
+"Fixed: developer resolves, notes the root cause and the build number carrying the fix",
+"Retest: tester verifies on that exact build using the original steps",
+"Closed on pass, Reopened on fail with the new evidence attached",
+"Handle side states properly: duplicate with a link, rejected with a reason, deferred with a target release"],
+ex:"On an edtech app, a video playback defect was closed as cannot reproduce twice. The third report attached a screen recording, the device model, the app build, the network condition of a 3G connection and the specific course ID. It reproduced on the first attempt and turned out to be an adaptive bitrate issue that only appeared below a certain bandwidth. The defect was never flaky, the report had been incomplete.",
+iv:"New, assigned, open, fixed, retest, then closed or reopened, plus the side states of duplicate, rejected, deferred and cannot reproduce. What I actually focus on is the quality of the report, because that decides how the cycle goes. I give a title that states the symptom, minimal reproducible steps, expected versus actual, evidence, environment and the exact build. When something comes back as cannot reproduce I treat it as feedback on my report first. On one app a playback bug only reproduced under low bandwidth, and it stopped bouncing the moment I attached the network condition and a recording.",
+p:["Reporting a defect without the build number, so nobody knows which code was tested",
+"Reopening a defect for a different symptom instead of raising a new one, which corrupts metrics",
+"Arguing about a rejection in chat instead of attaching evidence and escalating through triage"]},
+
+{id:"MT-1.09",tr:"man",lv:1,t:"Severity versus priority",
+k:["severity","priority","triage","impact","urgency"],
+d:["Severity is the technical impact of the defect on the system and is set by the tester. Priority is the business urgency of fixing it and is set by the product owner or lead. They are independent axes, and the interview always probes the two crossed combinations because that is where understanding shows.",
+"High severity with high priority is the obvious case: checkout crashes, fix now. High severity with low priority is a genuine crash in a path almost nobody uses, such as an obsolete report accessible only to two internal users, so it waits. Low severity with high priority is the case people miss: the company name misspelled on the home page or a competitor logo left in a banner does no technical damage at all and must be fixed within the hour. Low severity with low priority is a minor alignment issue on an internal admin screen. Your job is to argue severity with technical evidence and then accept the business call on priority."],
+s:["Assess severity from technical impact: blocker, critical, major, minor, cosmetic",
+"Assess proposed priority from business urgency: high, medium, low",
+"Check whether a workaround exists, because that usually lowers priority not severity",
+"Check how many users and how much money the path touches",
+"Present both with reasoning in the defect and at triage",
+"Let the product owner own the final priority and record the decision",
+"Recheck priority each release, because deferred low priority items can become urgent"],
+ex:"Two days before a festival campaign, an edtech app showed the wrong discount percentage in the banner text while charging the correct amount. Technically cosmetic, since no payment was affected, so severity was minor. Commercially it was a false advertising exposure across a two million user push notification, so priority was highest and it shipped as a hotfix within two hours. The same sprint carried an unfixed crash in a legacy admin export used by one internal user, high severity, low priority.",
+iv:"Severity is technical impact and I own it, priority is business urgency and the product owner owns it. They are independent, which is why the crossed cases are the interesting ones. A crash in an obsolete internal report is high severity and low priority. A misspelled company name on the home page is cosmetic severity and top priority, because the exposure is commercial rather than technical. I had exactly that on a campaign banner showing the wrong discount text while charging correctly. Minor severity, hotfixed in two hours, because it went out to a two million user push.",
+p:["Marking every defect you personally found as critical, which destroys the value of the field",
+"Letting a workaround reduce the severity when it should only reduce the priority",
+"Setting priority unilaterally instead of taking it to triage with the business"]}
+);
+window.C.push(
+{id:"MT-2.01",tr:"man",lv:2,t:"The four levels of testing",
+k:["unit","integration","system","uat","alpha","beta"],
+d:["Testing happens at four increasing scopes, and each level exists to catch a class of defect the others structurally cannot. Unit testing checks the smallest independently testable piece, normally by the developer, with dependencies mocked. Integration testing checks the interfaces between units and between systems, and it is where contract mismatches, wrong data formats and broken error propagation appear. System testing checks the complete integrated application against the requirements in a production like environment, and it is the level most manual testers own. User acceptance testing checks fitness for business purpose, run by or with real users.",
+"Integration approaches are worth knowing by name. Big bang integrates everything at once and gives you a pile of failures with no isolation. Top down needs stubs for lower modules, bottom up needs drivers for higher ones, and sandwich combines both to attack critical layers from either end. Alpha UAT happens in house with internal users, beta happens with real users in a real environment."],
+s:["Unit: developer tests each function with mocks and stubs, targeting branch coverage",
+"Integration: verify interfaces module by module using top down, bottom up or sandwich, not big bang",
+"Integration: check data format, error propagation and timeout behaviour across the boundary",
+"System: deploy the fully integrated build and execute functional and non functional cases against requirements",
+"System: include end to end business flows that cross module boundaries",
+"UAT: business users run their own real scenarios with production like data",
+"Gate the release on written UAT sign off, not verbal agreement"],
+ex:"A retail integration between the order service and a third party courier passed system testing because the courier was mocked. At integration testing with the live sandbox, the courier returned pin code as a string with padding while the order service expected an integer. Nothing crashed, the shipment silently defaulted to the wrong zone. Only interface level testing with the real contract could have found it.",
+iv:"Unit, integration, system and UAT, each catching what the others cannot. Unit is the developer with mocks. Integration is the interfaces, and I prefer incremental over big bang because big bang gives you a pile of failures with no isolation. System is the full build against requirements in a production like environment, which is where I usually own the work. UAT is business fitness with real users and formal sign off. The example I use is a courier integration that passed system test against a mock, then failed against the real sandbox because the pin code came back as a padded string.",
+p:["Skipping integration testing because both modules passed system testing separately",
+"Running UAT as a demo controlled by the project team rather than by real business users",
+"Assuming a mocked dependency proves anything about the real third party contract"]},
+
+{id:"MT-2.02",tr:"man",lv:2,t:"Functional test types",
+k:["smoke","sanity","regression","retesting","end to end"],
+d:["These are the five words used every single day, and they are the most commonly confused pair in interviews. Smoke testing is shallow and wide: a small set of critical path checks that answer whether this build is stable enough to spend a day testing. Sanity testing is narrow and deep: focused checking of the specific area that just changed. Retesting re-executes the exact failed case on the fixed build, so it is always defect driven and never planned in advance. Regression re-executes existing passing cases to prove the fix did not break anything else, so it is change driven and planned.",
+"End to end testing follows a complete business journey across modules and often across systems, including the database and third party integrations. The judgement call in real projects is regression scope: full regression every release is unaffordable, so you select by impact analysis, by dependency, by defect history and by risk. Being able to explain how you choose is more valuable than knowing the definitions."],
+s:["Receive the build and run the smoke suite before accepting it for testing",
+"Reject the build immediately if smoke fails, rather than logging fifty downstream defects",
+"Run sanity on the specific changed area once smoke passes",
+"Retest every fixed defect using the original reproduction steps",
+"Do impact analysis to select the regression scope for this change",
+"Execute regression, prioritising modules that share data or code with the change",
+"Run end to end business journeys last, across modules and integrations"],
+ex:"On a fee collection module the change was a single tax rounding rule. Impact analysis showed the same rounding utility was reused by refunds, invoices and the accounting export. The regression scope became those four areas plus smoke, roughly ninety cases rather than the full eight hundred, and it caught a mismatch in the accounting export that a fee only regression would have missed entirely.",
+iv:"Smoke is shallow and wide to decide whether the build is worth testing. Sanity is narrow and deep on the area that changed. Retesting is re-running the exact failed case on the fixed build, so it is defect driven. Regression is re-running passing cases to prove nothing else broke, so it is change driven. End to end follows the whole business journey across modules and integrations. The part I would emphasise is regression selection, because full regression every release is unaffordable. I select by impact analysis, shared code and data, defect history and risk, and I document why.",
+p:["Running full regression blindly and then having no time for the actual new feature",
+"Confusing retesting with regression in status reports, which hides fix verification gaps",
+"Accepting a build that failed smoke and drowning the developer in cascading defects"]},
+
+{id:"MT-2.03",tr:"man",lv:2,t:"Non-functional test types",
+k:["performance","load","stress","security","usability","compatibility"],
+d:["Non-functional testing asks how well the system behaves rather than what it does, and every attribute needs a number agreed in advance or the test produces an opinion instead of a result. Performance measures response time, throughput and resource use under expected conditions. Load increases concurrent users up to the expected peak. Stress pushes past the limit to find the breaking point and, more importantly, whether recovery is graceful. Endurance runs for hours to expose memory leaks and connection pool exhaustion. Spike applies sudden extreme load, which is the realistic scenario for a campaign or a results day.",
+"Security covers authentication, authorisation, session handling, data exposure and injection. Usability measures how easily a real user completes a real task. Compatibility covers browsers, devices, operating systems, screen sizes and network conditions. Reliability, maintainability and portability complete the classic set. The common failure here is running the test without a documented acceptance threshold, which makes the result unarguable in either direction."],
+s:["Agree measurable acceptance criteria per attribute before any execution",
+"Model the realistic workload from production analytics, not from guesswork",
+"Run performance and load against the agreed peak, monitoring server side resources too",
+"Run stress, endurance and spike to find limits, leaks and recovery behaviour",
+"Run security checks on authentication, authorisation, session and injection paths",
+"Run usability with real users on real tasks and measure completion, not preference",
+"Run compatibility against a device and browser matrix built from analytics"],
+ex:"An exam results portal passed load testing at five thousand concurrent users. On results day it collapsed in ninety seconds because real traffic arrived as a spike of sixty thousand in the first two minutes, not as a ramp. The workload model was wrong, not the tooling. The rerun used a spike profile plus a queue and cache in front, and the next results day held.",
+iv:"Non-functional testing is about how well rather than what, and every attribute needs a threshold agreed up front or the result is just an opinion. Performance is response time and throughput at expected load, load goes to the peak, stress goes past it to find the breaking point and recovery, endurance exposes leaks, and spike is sudden extreme traffic. Security, usability and compatibility complete the picture. The lesson I carry is from a results portal that passed a ramped load test and still collapsed, because real traffic arrived as a spike. The workload model matters more than the tool.",
+p:["Running a load test with no agreed response time threshold, so results cannot pass or fail",
+"Modelling load as a smooth ramp when the real pattern is a spike",
+"Monitoring only client side response time and never the server, database or network"]},
+
+{id:"MT-2.04",tr:"man",lv:2,t:"Black box, white box, grey box",
+k:["black box","white box","grey box","code coverage"],
+d:["This is about how much internal visibility the tester has. Black box testing works purely from requirements and the interface, with no knowledge of the code, and it dominates system and acceptance levels. White box testing works from the code, targeting statement, branch, condition, path and loop coverage, and it dominates unit and integration levels. Grey box sits between them: you have partial internal knowledge, typically the database schema, the API contract or the architecture, and you use it to design far sharper black box tests.",
+"Grey box is where most experienced manual testers actually live, and saying so signals maturity. If you know that the UI writes to three tables and calls one external service, you stop testing only what the screen shows and start verifying that the data landed correctly and that the service failure path is handled. That is the same test effort producing much deeper coverage."],
+s:["Black box: derive cases from requirements and acceptance criteria only",
+"Black box: apply equivalence partitioning, boundary value analysis and decision tables at the interface",
+"White box: identify branches, conditions and loops, and design cases to cover each",
+"White box: measure statement and branch coverage and target the uncovered lines",
+"Grey box: read the schema and API contract to know what the action should change",
+"Grey box: verify the database state and the service call, not only the screen message",
+"Grey box: use logs to confirm the internal path actually taken"],
+ex:"A grey box approach on a wallet feature revealed that a failed top up showed a friendly error on screen while still inserting a pending row in the transactions table with no cleanup job. A pure black box test would have passed, because the message was correct. Reading the schema turned a passing test into a reconciliation defect worth real money.",
+iv:"Black box is requirement and interface driven with no code visibility, white box is code driven and measured with statement, branch and path coverage, and grey box is partial internal knowledge used to sharpen external tests. In practice I work grey box. If I know the API contract and the schema, I verify that the action actually wrote the right rows and handled the third party failure, instead of trusting the success message. That approach once exposed a failed wallet top up that displayed a correct error while leaving an orphaned pending transaction behind.",
+p:["Claiming white box experience without being able to explain branch versus statement coverage",
+"Testing only the visible UI response when you have database access available",
+"Treating high code coverage as proof of good testing when the assertions are weak"]},
+
+{id:"MT-2.05",tr:"man",lv:2,t:"Test design techniques",
+k:["ecp","bva","decision table","state transition","pairwise","error guessing"],
+d:["Design techniques are the answer to exhaustive testing being impossible: systematic rules that reduce an infinite input space to a small, defensible set of cases. Equivalence partitioning splits input into classes that should behave identically and tests one representative per class. Boundary value analysis then attacks the edges, because that is where off by one errors live: minimum, minimum plus one, maximum, maximum minus one, and just outside on each side. Decision tables map every combination of conditions to expected actions, which is essential for business rules with several flags. State transition testing covers valid and invalid moves between application states, and it is the right tool for anything with a status field.",
+"Use case testing derives cases from actor and system interaction flows. Pairwise or orthogonal array testing covers all pairs of parameter values when full combinations explode, cutting hundreds of cases to dozens with most of the defect finding power. Error guessing is experience applied deliberately, and it complements the formal techniques rather than replacing them."],
+s:["Identify every input, its type and its valid range from the requirement",
+"Apply equivalence partitioning to form valid and invalid classes and pick one value per class",
+"Apply boundary value analysis on each range: min minus one, min, min plus one, max minus one, max, max plus one",
+"Build a decision table when two or more conditions combine to determine the outcome",
+"Draw a state diagram for anything with statuses and cover valid plus invalid transitions",
+"Apply pairwise reduction when parameter combinations exceed what you can execute",
+"Add error guessing cases last, based on defect history and known weak spots"],
+ex:"A loan application form had six dropdowns with three to five options each, over a thousand combinations. Pairwise reduction produced twenty five cases covering every pair of values. Those twenty five found both real defects, one of which was an invalid combination of self employed and salaried document type that the developers had never considered together.",
+iv:"They exist because exhaustive testing is impossible, so I need a defensible reduction. Equivalence partitioning gives me one value per behaviour class, boundary value analysis attacks the edges where off by one bugs live, decision tables handle combinations of business conditions, and state transition testing covers anything with a status field including invalid transitions. When combinations explode I use pairwise, which on a six dropdown loan form took me from over a thousand combinations to twenty five cases that still found both real defects. Error guessing sits on top of all of that, not instead of it.",
+p:["Testing only valid values and inside the range, missing the just outside boundary entirely",
+"Ignoring invalid state transitions, which is where most workflow defects hide",
+"Using error guessing as the primary technique because formal design feels slow"]},
+
+{id:"MT-2.06",tr:"man",lv:2,t:"Static versus dynamic testing",
+k:["review","walkthrough","inspection","static analysis"],
+d:["Static testing examines artifacts without executing them. Dynamic testing runs the software. Static is the cheapest defect removal available and the most commonly skipped, which is exactly why interviewers ask about it.",
+"The static family has a hierarchy of formality. An informal review is a colleague reading your work. A walkthrough is led by the author to build shared understanding. A technical review is peer led and focused on correctness. An inspection is the most formal, with a moderator, defined roles, entry criteria, checklists, a logged defect list and a follow up. Static analysis is the automated arm: linters, complexity metrics, standards checks and security scanners on the source. Dynamic testing then splits into functional and non-functional execution. The practical discipline is to log static findings as defects with the same rigour as runtime bugs, otherwise the review produces conversation and no measurable improvement."],
+s:["Identify which artifacts are review candidates: requirements, design, code, test cases, data model",
+"Choose the formality level appropriate to the risk of the artifact",
+"Circulate the artifact and a checklist before the meeting, not during it",
+"Run the session focused on finding issues, never on solving them in the room",
+"Log every finding as a defect with owner and target date",
+"Run automated static analysis on every commit as a gate",
+"Only then start dynamic execution, functional first, then non-functional"],
+ex:"A test case review on a subscription renewal feature caught that twelve of thirty cases used the same customer with an active card, so none of them exercised an expired card at renewal. That was found in forty minutes of review. In the previous release the identical gap had been discovered during production support after real renewals failed silently.",
+iv:"Static testing examines the artifact without running it, dynamic executes the software. The static hierarchy runs from informal review, to author led walkthrough, to peer technical review, to formal inspection with a moderator and checklists, plus automated static analysis on the code. I push for it because it is the cheapest defect removal there is, and I insist that findings get logged as defects rather than discussed verbally, otherwise nothing is measurable. A forty minute test case review once showed that most of our renewal cases used the same valid card, so we had no coverage of expiry at renewal at all.",
+p:["Turning reviews into solution design meetings, which triples the time and finds fewer issues",
+"Recording review findings in chat instead of the defect tool, so nothing is tracked",
+"Reviewing only code and never requirements or test cases, where the costliest defects start"]},
+
+{id:"MT-2.07",tr:"man",lv:2,t:"Agile testing and Scrum",
+k:["agile","scrum","sprint","definition of done","three amigos"],
+d:["In agile, testing is an activity inside the sprint rather than a phase after it, and the whole team owns quality. Practically that changes four things. First, you join refinement and estimation, because acceptance criteria written without a tester present are usually missing the negative cases. Second, you write tests before or while the code is being built, not after. Third, you test each story as soon as it is deployable, so testing does not compress into the last two days. Fourth, the definition of done includes testing, so a story is not done because the developer pushed code.",
+"The ceremonies matter as touchpoints, not as ritual. Refinement is where you make requirements testable. Planning is where you commit realistic capacity including test effort and automation. The daily stand up is where blockers surface the same day. Review is the demo. Retrospective is where you fix the process problem that hurt you, such as stories arriving on day nine."],
+s:["Attend backlog refinement and turn vague stories into testable acceptance criteria",
+"Run a three amigos conversation between business, developer and tester on each significant story",
+"Include test design, execution and automation effort in the sprint capacity",
+"Write test cases or scenarios as the story is being built, not after",
+"Test each story as soon as it is deployable and raise defects inside the sprint",
+"Verify the definition of done before moving any story to done",
+"Keep the automated regression suite green every sprint so it never becomes debt"],
+ex:"An edtech squad kept failing sprints because stories arrived for testing on day eight of a ten day sprint. The retrospective action was a written rule that no story enters the sprint without acceptance criteria reviewed by a tester, plus a hard limit of three stories in the development column. Test time per story stopped being compressed and carry over dropped from four stories a sprint to one.",
+iv:"In agile I test inside the sprint and the whole team owns quality. Concretely I join refinement to make acceptance criteria testable, I run a three amigos conversation on significant stories, I include test and automation effort in sprint capacity, and I test each story as soon as it is deployable rather than waiting for a build at the end. Definition of done includes testing, so development finishing is not done. The biggest win I have had came from a retrospective rule that no story enters a sprint without tester reviewed acceptance criteria, which cut our carry over sharply.",
+p:["Waiting for a formal signed requirement document that agile is never going to produce",
+"Letting all testing pile into the last two days of the sprint and calling it a tooling problem",
+"Skipping automation in sprint, so regression debt makes every later sprint slower"]},
+
+{id:"MT-2.08",tr:"man",lv:2,t:"Exploratory and ad-hoc testing",
+k:["exploratory","ad hoc","charter","session based","monkey testing"],
+d:["Exploratory testing is simultaneous learning, test design and execution. It is not random. The structured form, session based test management, gives each session a charter stating the area and the risk, a time box of roughly sixty to ninety minutes, running notes, and a debrief. Test design happens continuously because each observation suggests the next test, which is exactly what a pre written script cannot do.",
+"Ad-hoc testing is the informal version with no charter and no documentation, useful for a quick opinion and impossible to audit. Monkey testing is random input with no structure at all. The reason exploratory earns respect is defect yield: on new features, on legacy areas with no documentation, and under a compressed timeline it finds problems scripted cases never encode, because the scripts were written from the same assumptions the developer had. The professional move is to convert every valuable finding into a permanent test case afterwards."],
+s:["Pick a target area and write a charter: what to explore, which risk, how long",
+"Time box the session to sixty or ninety minutes with no interruptions",
+"Explore, and let each observation shape the next test you try",
+"Keep running notes with timestamps, screenshots or a screen recording",
+"Split your time between exploration, bug investigation and note taking, and report the split",
+"Debrief with the lead on coverage, findings and areas that still feel risky",
+"Convert valuable findings into permanent scripted cases and automation candidates"],
+ex:"Two days before a release, a ninety minute charter on a newly rewritten search feature found that searching with a trailing space returned zero results while the same term without it returned forty. No scripted case covered it, because the person who wrote the cases typed cleanly. It was converted into a permanent case and later into an automated test with padded input data.",
+iv:"Exploratory testing is simultaneous learning, design and execution, and I run it session based rather than randomly: a charter naming the area and risk, a sixty to ninety minute time box, running notes, then a debrief. Ad-hoc is the same activity without structure or records. I use exploratory on new features, on undocumented legacy areas and when the timeline is compressed, because scripted cases carry the same assumptions the developer had. A ninety minute charter on a rewritten search once found that a trailing space returned zero results, which no written case covered, and it became a permanent case afterwards.",
+p:["Calling unstructured clicking exploratory testing with no charter, notes or debrief",
+"Failing to convert findings into permanent cases, so the same gap reopens next release",
+"Using exploratory as a replacement for scripted coverage rather than a complement to it"]},
+
+{id:"MT-2.09",tr:"man",lv:2,t:"API testing without writing code",
+k:["api","postman","rest","status code","json schema"],
+d:["API testing hits the service layer directly, below the user interface. It is faster, far more stable, and available earlier, because the API usually exists before the screen does. With a client such as Postman you can do serious work without writing a framework.",
+"The mechanics start with the contract: endpoint, method, headers, authentication, request body, response schema and error codes. Then you validate in layers. Status code first, because 200 versus 201 versus 204 carries meaning. Then the body: field presence, data types, values, and schema conformance rather than eyeballing the JSON. Then negative cases, which is where most defects are: missing mandatory fields, wrong types, invalid tokens, expired tokens, another user's resource ID for authorisation, oversized payloads. Then behaviour: response time, pagination, idempotency of repeated calls, and whether the database actually changed. Chaining with variables and environments makes the collection reusable across environments, and running it through a pipeline turns it into your fastest regression suite."],
+s:["Read the API contract and note endpoint, method, headers, auth, body and expected schema",
+"Send the happy path request and assert the exact status code",
+"Validate the response body fields, data types and JSON schema, not just the visible values",
+"Test negative cases: missing mandatory fields, wrong types, invalid and expired tokens",
+"Test authorisation by requesting another user's resource with your own valid token",
+"Chain requests with environment variables so tokens and IDs flow between calls",
+"Verify the database state and check response time, pagination and repeat call behaviour"],
+ex:"On a course enrolment API, the happy path was correct and the UI worked perfectly. Sending the enrolment call twice with the same payload created two enrolments and charged twice, because the endpoint was not idempotent. The UI hid it by disabling the button, so only direct API testing could surface it, and a flaky network on a real device would have triggered it in production.",
+iv:"I test the service layer directly with Postman because it is faster, more stable and available before the UI. I start from the contract, then validate in layers: status code, then body fields and JSON schema, then negative cases like missing fields, wrong types and expired tokens, then authorisation by requesting another user's resource with my own token, then behaviour such as response time, pagination and idempotency, and finally the database state. On an enrolment API the UI looked perfect but sending the same payload twice enrolled and charged twice, because the endpoint was not idempotent and the UI was just disabling the button.",
+p:["Asserting only the status code and never validating the response body or schema",
+"Skipping authorisation tests, which are the most common real API vulnerability",
+"Hardcoding tokens and IDs so the collection cannot run in another environment"]},
+
+{id:"MT-2.10",tr:"man",lv:2,t:"SQL for testers",
+k:["sql","joins","backend testing","database validation"],
+d:["Backend verification answers a question the interface cannot: is what the screen shows actually what the database stored. You do not need to be a database engineer, but you do need select with where and order by, joins across related tables, aggregates with group by and having, and a clear understanding of null handling.",
+"The three testing uses are validation, data preparation and investigation. Validation means confirming after a UI action that the right rows exist with the right values, in every affected table, including audit and history tables that the screen never shows. Data preparation means creating or resetting the exact record state a test needs instead of clicking through ten screens to reach it. Investigation means answering whether a defect is a UI display problem or genuinely bad data, which is the single most useful thing you can tell a developer in a defect report. The professional rule is that you run these only on test environments and you never issue an unbounded update or delete."],
+s:["Learn select with where, order by, distinct and limit for retrieval",
+"Learn inner, left and right joins to verify data spread across related tables",
+"Learn group by with count, sum, min, max and having for aggregate checks",
+"After each UI action, verify the inserted, updated or deleted rows in every affected table",
+"Check audit, history and status tables the interface never displays",
+"Check constraints, null handling, duplicates and orphaned foreign keys",
+"Prepare and clean your own test data, always scoped with a where clause, never on production"],
+ex:"A fee receipt showed the correct amount on screen, but a join across payments and ledger entries revealed the ledger row carried the pre-discount amount. Reconciliation would have broken at month end for every discounted payment. The UI was flawless, the defect was one join away, and the report went to the developer with the exact query attached.",
+iv:"I use SQL for three things: validating that a UI action wrote the right rows in every affected table including audit tables, preparing exact data states instead of clicking through screens, and investigating whether a defect is display or data. Core skills are select with where, joins, and group by with aggregates. On a fee module the receipt showed the discounted amount correctly, but a join into the ledger showed the pre-discount value, which would have broken month end reconciliation. I always scope updates with a where clause and never run anything against production.",
+p:["Trusting the screen and never checking the audit or history tables behind it",
+"Running an update or delete without a where clause on a shared test database",
+"Requesting data changes from a developer for every test instead of preparing your own"]},
+
+{id:"MT-2.11",tr:"man",lv:2,t:"Cross browser and mobile testing",
+k:["cross browser","responsive","mobile","device matrix","interrupt"],
+d:["The goal is consistent behaviour and acceptable presentation across the combinations your users actually have. The first deliverable is therefore not a test case, it is a device and browser matrix built from your own analytics: browser plus version, operating system, device model, screen size and network speed, ranked by real usage share. Testing everything is impossible, so the matrix is your justification for what you did and did not cover.",
+"For web, check rendering at each responsive breakpoint, plus orientation, zoom, touch versus mouse interaction and font scaling. For mobile apps there is a whole class of tests that does not exist on desktop: interrupt handling for calls, notifications, alarms and low battery, backgrounding and resuming, permission grant and denial, poor and switching networks, low storage, install, upgrade over an existing version, and uninstall. Upgrade testing with real old data is the one most often skipped and it produces some of the worst production failures."],
+s:["Build the device, browser and OS matrix from production analytics and rank by usage",
+"Define which combinations get full coverage, which get smoke, and record the reasoning",
+"Test core flows on each priority combination, checking function before cosmetics",
+"Check every responsive breakpoint, orientation change, zoom and font scaling",
+"Test mobile interrupts: incoming call, notification, alarm, low battery, backgrounding",
+"Test network conditions: 3G, packet loss, airplane mode toggle, wifi to mobile handover",
+"Test install, upgrade over an existing version with real data, and uninstall",
+"Use a cloud device lab for the long tail rather than buying every device"],
+ex:"An app upgrade migrated the local database schema. Fresh installs worked perfectly across thirty devices. Upgrading over the previous version with two years of downloaded course data crashed on launch, because the migration script assumed a column that older records did not have. Only upgrade testing with real legacy data could find it, and it would have hit every existing user at once.",
+iv:"I start with a device and browser matrix built from actual analytics rather than from opinion, and I record which combinations get deep coverage versus smoke so the choice is defensible. For web I check breakpoints, orientation, zoom and touch behaviour. For mobile there is a whole class of tests desktop does not have: interrupts like calls and notifications, backgrounding, permissions, poor and switching networks, and above all upgrade over an existing install with real old data. I have seen fresh installs pass on thirty devices while the upgrade path crashed on launch because of a database migration assumption.",
+p:["Testing only the latest version of one browser and calling it cross browser coverage",
+"Testing fresh installs only and never upgrading over a real previous version",
+"Reporting layout differences as defects without checking whether the function still works"]}
+);
+window.C.push(
+{id:"MT-3.01",tr:"man",lv:3,t:"Test strategy versus test plan",
+k:["strategy","plan","exit criteria","suspension criteria"],
+d:["A test strategy is a high level, long lived document at organisation or product level. It states the overall approach: which levels and types are mandatory, what tooling is standard, what the automation policy is, what the defect management and environment standards are, how quality is measured. It is written once and revised rarely, and it is normally owned by a test manager or head of quality.",
+"A test plan is project or release specific and derived from the strategy. It states scope in and out, approach for this release, schedule, effort estimate, resources and roles, environments, dependencies, deliverables, risks with mitigation, and the criteria that govern the release. The three criteria sets are the part candidates fumble. Entry criteria say what must be true before testing starts. Exit criteria say what must be true to stop, typically expressed as percentage of cases executed, pass rate, and zero open critical or high defects. Suspension and resumption criteria say when you stop mid cycle, for example when smoke fails or the environment is unusable, and what has to happen to restart."],
+s:["Confirm the organisational strategy exists and read it before writing any plan",
+"Define scope precisely, including a written out of scope list to prevent later argument",
+"Define the approach: levels, types, techniques, automation split and tooling for this release",
+"Estimate effort, then map resources, roles, skills and training needs",
+"Document environments, test data needs and every external dependency with an owner",
+"Write entry, exit, suspension and resumption criteria in measurable terms",
+"List risks with likelihood, impact, mitigation and contingency, then review, sign off and baseline"],
+ex:"A release plan defined suspension criteria as smoke failure or more than three blockers open for over twenty four hours. In week two the environment lost its integration sandbox. Testing was formally suspended and reported rather than the team burning four days on partial execution. Because the criteria were pre-agreed, nobody treated it as a QA delay and the timeline was renegotiated with evidence.",
+iv:"Strategy is organisation or product level and long lived: mandatory levels and types, standard tooling, automation policy, quality measures. The plan is release specific and derived from it: scope in and out, approach, estimate, resources, environments, dependencies, risks, and the criteria. I put particular weight on the criteria being measurable. Entry criteria to start, exit criteria such as ninety five percent execution with zero open critical or high defects, and suspension criteria for when to stop mid cycle. Having suspension criteria pre-agreed once let us formally pause a release when the sandbox died, instead of it becoming a QA blame conversation.",
+p:["Writing exit criteria as all testing complete, which is not measurable",
+"Omitting the out of scope list, which guarantees an argument late in the release",
+"Copying last release's plan without revisiting risks, dependencies or estimates"]},
+
+{id:"MT-3.02",tr:"man",lv:3,t:"Risk-based testing",
+k:["risk","impact","likelihood","residual risk","prioritisation"],
+d:["Risk-based testing is the honest response to two facts: you cannot test everything, and not everything deserves equal attention. You identify risks, score them, and let the score drive depth, sequence and even whether a feature is tested at all.",
+"Score each risk on likelihood of failure and impact of failure. Likelihood comes from complexity, recent change volume, developer experience, defect history, third party involvement and technical debt. Impact comes from money, users affected, regulatory exposure, reputation and whether a workaround exists. Multiply the two for a risk exposure ranking. High exposure areas get deep coverage, earliest execution and the most experienced tester. Low exposure areas get smoke only, and that decision is written down. The output that makes this a lead level skill is the residual risk statement: at the go or no go meeting you say what has not been tested and what could therefore go wrong, so the business makes an informed decision instead of assuming full coverage."],
+s:["Run a risk identification workshop with business, development, operations and support",
+"Score likelihood using complexity, change volume, defect history and third party dependency",
+"Score impact using revenue, users affected, regulatory exposure and workaround availability",
+"Multiply to get exposure and rank every area",
+"Allocate depth, sequence and tester experience in proportion to exposure",
+"Record deliberately shallow areas explicitly, with the reasoning",
+"Re-score every sprint or release, and present residual risk at the go or no go decision"],
+ex:"With four days left before a release, risk scoring put payment refunds at the top: recently rewritten, financial impact, no workaround. It put the marketing landing pages at the bottom. The team moved two testers off content pages onto refunds and found a partial refund rounding defect that would have under-refunded thousands of customers by small amounts. The go decision recorded that landing page copy had only smoke coverage.",
+iv:"I score every area on likelihood and impact, multiply for exposure, then allocate depth, sequence and my strongest testers in proportion. Likelihood comes from complexity, recent change, defect history and third party involvement. Impact comes from money, users, regulation and whether a workaround exists. I also write down what I deliberately left shallow, and I present residual risk at the go or no go meeting, so the business is deciding with information. On one release that reprioritisation pulled testers off marketing pages onto a rewritten refund flow and caught a partial refund rounding defect.",
+p:["Scoring risk once at the start and never re-scoring as the release changes",
+"Reporting only what was tested and never stating what was consciously not tested",
+"Letting the loudest stakeholder set priority instead of likelihood and impact scores"]},
+
+{id:"MT-3.03",tr:"man",lv:3,t:"Test estimation techniques",
+k:["estimation","three point","wbs","function point","planning poker"],
+d:["Estimation is predicting effort, duration and cost so commitments are realistic and defensible. The reason it is a lead skill is that you have to defend the number under pressure to shrink it.",
+"Work breakdown structure is the base technique: decompose into tasks small enough to estimate confidently, estimate each, then roll up. Three point estimation guards against optimism using optimistic plus four times most likely plus pessimistic, divided by six, which is the PERT formula. Function point and test point analysis size the work from application characteristics rather than from gut feel, which is useful for fixed bid contracts. Planning poker or wideband delphi uses team consensus and exposes hidden assumptions when estimates diverge widely. Historical data beats every technique when you have it, expressed as cases per day or hours per story point for your own team. Whatever the method, you must add explicit effort for retesting, regression, environment downtime, meetings and defect investigation, because those are what actually consume a cycle."],
+s:["Decompose the release into estimable tasks with a work breakdown structure",
+"For each task, capture optimistic, most likely and pessimistic effort",
+"Apply the three point formula so optimism is diluted mathematically",
+"Cross check the total against historical productivity from similar past releases",
+"Add explicit line items for retesting, regression, defect investigation and meetings",
+"Add contingency for environment downtime and known dependency risk",
+"Validate through planning poker with the team, then state your assumptions in writing alongside the number"],
+ex:"A three week estimate was challenged down to two. Rather than arguing, the lead presented the breakdown: fifty percent execution, twenty percent retest and regression, fifteen percent environment and defect investigation, fifteen percent contingency. The negotiation then happened on scope instead of on effort, and two low risk modules were formally moved out of the release with the risk recorded.",
+iv:"I start with a work breakdown structure so the number is built from tasks rather than a feeling, then apply three point estimation to dilute optimism, and cross check against historical productivity for the same team. Crucially I add explicit effort for retesting, regression, defect investigation and meetings, because that is what really consumes a cycle. When my estimate gets challenged I present the breakdown with assumptions, which moves the negotiation onto scope rather than effort. On one release that meant two low risk modules were formally descoped with the risk written down, instead of everything being squeezed.",
+p:["Estimating only first pass execution and forgetting retest and regression entirely",
+"Accepting a cut number without recording which scope or risk was traded away",
+"Never comparing actuals against estimates, so estimation accuracy never improves"]},
+
+{id:"MT-3.04",tr:"man",lv:3,t:"Test metrics and reporting",
+k:["metrics","defect density","dre","defect leakage","coverage","kpi"],
+d:["Metrics exist to make decisions objective, and the ones worth reporting are the ones somebody acts on. Execution status covers passed, failed, blocked and not run, expressed as a percentage of planned. Coverage has two forms: requirement coverage from the traceability matrix and code coverage from unit tests. Defect density is defects divided by size, which lets you compare modules fairly. Defect removal efficiency is defects found internally divided by total defects including those found after release, and it is the single best measure of how well your testing works. Defect leakage is the escape rate, the metric management actually feels.",
+"Also useful: defect severity distribution, defect age and average fix turnaround, reopen rate as a signal of fix quality or unclear reports, and test case effectiveness measured as defects found per hundred cases. The discipline is to report trends rather than snapshots, and to keep a dashboard short enough to read. A metric nobody acts on should be retired."],
+s:["Decide which questions the stakeholders need answered before choosing any metric",
+"Track execution status daily as passed, failed, blocked and not run against plan",
+"Track requirement coverage from the RTM and code coverage from the build",
+"Compute defect density per module to compare fairly across different sizes",
+"Compute defect removal efficiency and defect leakage after every release",
+"Watch reopen rate and defect age as early warnings on fix quality",
+"Publish a short trend dashboard, then act on the trend and retire unused metrics"],
+ex:"A quarterly view showed defect removal efficiency of eighty two percent with leakage concentrated in one integration area. That single number justified adding contract testing for that integration. The next quarter, leakage in the area fell to near zero. The metric was useful precisely because a decision was attached to it, unlike the case count that had been reported for years and changed nothing.",
+iv:"I pick metrics by the decision they support. Day to day it is execution status against plan, requirement coverage from the RTM, and defect age and reopen rate as early warnings. Per release it is defect density by module for fair comparison, defect removal efficiency, and defect leakage, which is the escape metric management actually feels. I report trends rather than snapshots and keep the dashboard short. On one product, leakage concentrated in a single integration justified adding contract testing there, and the next quarter it dropped to near zero. Any metric nobody acts on, I retire.",
+p:["Reporting the number of test cases written as if quantity were quality",
+"Using metrics to compare individual testers, which immediately corrupts the data",
+"Publishing a large dashboard nobody reads instead of three numbers with a trend"]},
+
+{id:"MT-3.05",tr:"man",lv:3,t:"Shift-left and continuous testing",
+k:["shift left","continuous testing","tdd","bdd","test pyramid","shift right"],
+d:["Shift left means moving testing activity earlier because the cost of a defect rises roughly by an order of magnitude at each stage it survives. In practice it is four things: testers reviewing requirements and writing acceptance criteria, specification by example or BDD conversations before coding, unit and API tests as the primary safety net, and static analysis in the build.",
+"Continuous testing means those tests run automatically on every commit, so feedback arrives in minutes rather than at a test phase. That only works with the test pyramid shape: many fast unit tests, fewer API and integration tests, a thin layer of slow UI tests. An inverted pyramid, heavy on UI automation, gives slow and flaky feedback that teams start ignoring. Shift right completes the picture: monitoring, logging, alerting, feature flags, canary releases and testing in production, because some conditions only exist at real scale with real data. Mature teams do both, and the honest framing is that shift left reduces defects while shift right reduces the blast radius of the ones that escape."],
+s:["Put a tester into requirement refinement and make acceptance criteria testable",
+"Run specification by example or BDD conversations before development starts",
+"Make unit and API tests the primary safety net, with UI automation kept thin",
+"Add static analysis, dependency scanning and secret scanning as build gates",
+"Wire the full suite into the pipeline so every commit produces feedback in minutes",
+"Add production monitoring, structured logging and alerting for what tests cannot cover",
+"Use feature flags and canary releases to limit the blast radius of an escape"],
+ex:"A team with three hundred UI automated tests and almost no API tests had a ninety minute pipeline that failed randomly, so developers merged without waiting for it. Rebalancing to unit and API tests with about forty critical UI journeys cut the pipeline to eleven minutes. Because it was fast and trustworthy again, developers actually waited for it, and escaped defects fell for the first time in a year.",
+iv:"Shift left is moving testing earlier because defect cost rises roughly tenfold per stage. Concretely that is testers in refinement, BDD or specification by example before coding, unit and API tests as the main safety net, and static analysis as a build gate. Continuous testing is running all of that on every commit, which only works if you respect the test pyramid. I have inherited an inverted pyramid with three hundred flaky UI tests and a ninety minute pipeline nobody waited for. Rebalancing to API level cut it to eleven minutes and escapes finally dropped. Shift right with monitoring and canaries handles what tests cannot.",
+p:["Automating everything at the UI layer, producing a slow suite the team learns to ignore",
+"Calling it shift left while the tester still first sees the story at code complete",
+"Treating production monitoring as an operations concern with no QA involvement"]},
+
+{id:"MT-3.06",tr:"man",lv:3,t:"Accessibility testing",
+k:["accessibility","wcag","screen reader","a11y","contrast","keyboard"],
+d:["Accessibility testing verifies that people with visual, auditory, motor and cognitive disabilities can use the product. It is a legal requirement in many markets and a large user base everywhere, and it is increasingly asked about in interviews because most testers have never done it.",
+"The reference standard is WCAG, usually version 2.1 or 2.2 at conformance level AA, organised under four principles: perceivable, operable, understandable, robust. The practical work splits three ways. Automated scanners catch roughly a third of issues: contrast ratios, missing alternative text, missing form labels, invalid ARIA. Manual keyboard testing catches what scanners cannot: whether every interactive element is reachable and operable by keyboard alone, whether focus order is logical, whether focus is visible, whether focus is trapped in a modal and returned on close. Assistive technology testing with a real screen reader confirms that names, roles, states and error messages are actually announced. Contrast minimums to know are 4.5 to 1 for normal text and 3 to 1 for large text and interface components."],
+s:["Agree the target standard and conformance level, normally WCAG 2.1 level AA",
+"Run an automated scanner on every page to clear the mechanical issues first",
+"Check colour contrast ratios and confirm colour is never the only carrier of meaning",
+"Navigate every flow using the keyboard alone, verifying reachability, focus order and visible focus",
+"Test modals for focus trapping and focus return, and confirm skip links work",
+"Test with a real screen reader for name, role, state, heading structure and error announcements",
+"Verify captions and transcripts for media, zoom to two hundred percent, and reduced motion support"],
+ex:"An online learning platform passed its automated accessibility scan with zero errors. Keyboard testing then showed the video player controls were reachable only by mouse and the quiz modal never returned focus after closing, which stranded screen reader users mid course. Both were invisible to the scanner because the markup was technically valid. The fix was small, the discovery required manual testing.",
+iv:"I target WCAG 2.1 level AA under the four principles: perceivable, operable, understandable, robust. My process is three layered. An automated scanner clears the mechanical third, contrast, alt text, labels, ARIA. Then keyboard only navigation, which catches focus order, visible focus, focus trapping in modals and focus return on close. Then a real screen reader to confirm name, role, state and error announcements. I emphasise that scanners are necessary and insufficient. One platform passed a scan with zero errors while its video controls were mouse only and its quiz modal never returned focus.",
+p:["Treating a clean automated scan as conformance when scanners cover roughly a third of criteria",
+"Testing with a screen reader you have never learned, and reporting your own confusion as defects",
+"Ignoring focus management in modals and dynamically loaded content"]},
+
+{id:"MT-3.07",tr:"man",lv:3,t:"Localization and globalization",
+k:["localization","i18n","l10n","rtl","unicode","locale"],
+d:["Globalization, sometimes internationalisation, tests whether the product is built to support any locale at all: Unicode handling end to end, no hardcoded strings, layouts that survive text expansion, locale aware formatting driven by configuration rather than by code. Localization tests whether one specific locale is actually correct and natural: translation accuracy, tone, formatting, legal and cultural fit.",
+"The recurring technical defects are predictable. Text expansion of thirty percent or more in German and many Indian languages breaks fixed width buttons and truncates labels. Right to left languages such as Arabic, Hebrew and Urdu need mirrored layout, mirrored icons and correct handling of mixed direction text containing numbers. Date and number formats differ, and day month versus month day ambiguity causes real financial errors. Character encoding failures show up as question marks or boxes in names, and sorting rules differ per language. Concatenated strings built in code cannot be translated grammatically, which is why every string must be a complete, parameterised template."],
+s:["Verify Unicode support end to end: input, storage, retrieval, search, sort, export, email and PDF",
+"Confirm no hardcoded strings remain by testing with a pseudo localised build",
+"Check text expansion of thirty to forty percent against fixed width elements and truncation",
+"Verify date, time, number, currency, address, name and phone formats per locale",
+"Test right to left layout mirroring including icons, alignment and mixed direction text",
+"Review translations with a native speaker for accuracy, tone and context",
+"Validate locale specific legal, tax and cultural requirements, then test locale switching at runtime"],
+ex:"A platform launched a Hindi interface and the layout held, but certificate PDFs rendered learner names as empty boxes because the PDF library shipped without a Devanagari font. The web application handled Unicode correctly, so screen testing passed everywhere. The defect lived only in the export path, which is exactly why globalization testing has to follow data all the way through to output artifacts.",
+iv:"Globalization is whether the product can support any locale, and localization is whether one specific locale is correct. For globalization I follow the data end to end through input, storage, search, sort and especially exports like PDF and email, because that is where encoding breaks. I test with a pseudo localised build to expose hardcoded strings, check thirty to forty percent text expansion against fixed width elements, and verify right to left mirroring including icons. For localization I need a native speaker review. On one product the Hindi UI was perfect while certificate PDFs rendered names as empty boxes, because the PDF library had no Devanagari font.",
+p:["Testing only the user interface and never the exported documents, emails or reports",
+"Assuming right to left support is achieved by translating the strings",
+"Approving translations without a native speaker, so the text is accurate but unnatural"]},
+
+{id:"MT-3.08",tr:"man",lv:3,t:"Defect triage and root cause analysis",
+k:["triage","rca","five whys","fishbone","prevention"],
+d:["Triage is a recurring, time boxed forum where the open defect list is walked and decisions are made: confirm severity, set priority, assign an owner, agree a target build, or explicitly defer or reject with a reason. It exists because those decisions made privately in a tracker cause argument later. Attendees are the product owner, the development lead and the QA lead, and the output is decisions, not discussion.",
+"Root cause analysis is the separate, deeper activity applied especially to escaped defects. Five whys is the fastest usable technique: keep asking why until you reach a process cause rather than a code cause. Fishbone or cause and effect analysis organises candidate causes across people, process, tools, data, environment and requirements. Pareto analysis identifies the small number of causes producing most defects. The output must be a preventive action with an owner, and the honest test of maturity is whether the same root cause category appears in consecutive releases."],
+s:["Prepare the open defect list sorted by severity, age and business area before the meeting",
+"Walk each defect with the product owner, development lead and QA lead present",
+"Agree severity, priority, owner and target build for each, and record it immediately",
+"Make deferrals and rejections explicit, with a written reason and a target release",
+"For escaped and critical defects, run five whys until you reach a process cause",
+"Classify the root cause as requirement, design, code, data, environment or test gap",
+"Assign one preventive action with an owner, then verify next release that the cause did not recur"],
+ex:"Four escaped defects in a quarter all traced back through five whys to acceptance criteria that omitted negative scenarios. The code was fine, the tests matched the criteria, and the criteria were incomplete. The preventive action was a tester signature on acceptance criteria before a story entered a sprint. That category of escape did not recur, which is the only evidence that root cause analysis worked.",
+iv:"Triage is a recurring forum with the product owner, development lead and QA lead where we agree severity, priority, owner and target build for each open defect, and make deferrals and rejections explicit with reasons. Root cause analysis is separate and I apply it to escapes, using five whys until I reach a process cause rather than a code cause, then classify it as requirement, design, code, data, environment or test gap. The action has to be preventive and owned. In one quarter four escapes all traced to acceptance criteria missing negative cases, and the fix was a tester sign off before a story entered the sprint.",
+p:["Running triage as a status update rather than a decision meeting with recorded outcomes",
+"Stopping root cause analysis at the code change, which prevents any class level improvement",
+"Deferring defects with no target release, so the backlog silently becomes permanent"]}
+);
+window.C.push(
+{id:"AT-1.01",tr:"aut",lv:1,t:"What automation testing is and why it exists",
+k:["automation","why automate","regression","feedback"],
+d:["Automation testing is using code and tools to execute tests and evaluate results without a human driving each step. The value is not speed of a single test, it is repeatability at zero marginal cost. Once a regression suite exists, running it a hundred times costs almost nothing, which changes what the team can afford to do: release weekly instead of quarterly, refactor without fear, get feedback on every commit.",
+"What automation is not is a replacement for testers. It executes checks that somebody already designed; it cannot notice that a screen is confusing, that a flow makes no business sense, or that something feels wrong. So the correct framing in an interview is that automation absorbs repetitive confirmation work, which frees human attention for exploratory testing, risk analysis and new features. Automation is also software development: it needs design, review, version control, refactoring and maintenance, and treating it as scripting is the single most common reason automation projects are abandoned within a year."],
+s:["Establish the goal: faster regression, earlier feedback, or wider platform coverage",
+"Select candidate tests that are stable, repetitive and business critical",
+"Choose a tool that fits the technology stack and the team's existing language skill",
+"Build the framework: structure, configuration, reporting, test data and utilities",
+"Write scripts with proper design, then peer review them like production code",
+"Run locally, then integrate into the pipeline so they execute on every commit",
+"Analyse every failure, separating real defects from script and environment issues",
+"Refactor and maintain continuously, and retire scripts that no longer earn their keep"],
+ex:"A team with a two day manual regression cycle could only release once a month. Automating one hundred and forty critical journeys brought regression to thirty five minutes in the pipeline. Releases moved to weekly. Notably the manual team did not shrink, it shifted to exploratory testing on new features, and the defects found per release actually went up.",
+iv:"Automation is executing tests through code so that repeatability costs nothing, which is what lets a team release weekly instead of monthly. It executes checks a human already designed, so it does not replace testers, it absorbs repetitive confirmation work and frees people for exploratory testing and risk analysis. The framing I hold onto is that automation is software development, with design, review, version control and refactoring. On one product we took regression from two days manual to thirty five minutes in the pipeline, and the manual team moved onto exploratory work rather than being reduced.",
+p:["Selling automation as headcount reduction, which sets an expectation it cannot meet",
+"Treating scripts as throwaway code with no review, structure or refactoring",
+"Automating before the feature is stable, so maintenance consumes the whole benefit"]},
+
+{id:"AT-1.02",tr:"aut",lv:1,t:"What to automate and what not to",
+k:["automation candidates","feasibility","roi","selection"],
+d:["Automation pays back where a test is executed many times, is stable, is deterministic and matters. It loses money everywhere else, and being able to say what you would refuse to automate is what distinguishes an engineer from a script writer.",
+"Strong candidates: smoke and regression suites run on every build, data driven cases with many input combinations, cross browser and cross device repetition, API and integration tests, performance scenarios, and long tedious setup flows used as preconditions. Poor candidates: usability and visual appeal, exploratory testing, tests for features still changing every sprint, one time or rarely executed cases, tests needing physical interaction such as camera, biometrics or printing, and anything with a genuinely unpredictable result. A useful screen is frequency of execution multiplied by risk, divided by scripting and maintenance cost. Applying it honestly usually shows that the top fifteen percent of candidates deliver most of the benefit, which is where you should start rather than attempting full coverage."],
+s:["List all candidate tests with execution frequency, risk level and stability",
+"Score each on frequency multiplied by risk, divided by expected scripting and maintenance effort",
+"Automate the top slice first and prove value before expanding",
+"Prioritise API and integration level over UI wherever the same logic can be verified",
+"Exclude usability, exploratory and visual judgement tests explicitly",
+"Exclude features still changing weekly until the design settles",
+"Review the suite each release and delete scripts that no longer justify their maintenance"],
+ex:"A team planned to automate all nine hundred regression cases. Scoring by frequency and risk showed that one hundred and twenty covered every critical revenue path and ran every build, while four hundred were annual compliance checks executed once. Automating one hundred and twenty took six weeks and delivered nearly all of the value. The full nine hundred would have taken nine months and produced a suite too large to maintain.",
+iv:"I automate what is executed often, stable, deterministic and important, and I am deliberate about what I refuse. Good candidates are smoke and regression, data driven combinations, cross browser repetition and API tests. Bad candidates are usability, exploratory work, anything still changing weekly, one time compliance checks and anything needing physical interaction. My screen is frequency times risk over scripting plus maintenance cost. On one project that analysis showed one hundred and twenty of nine hundred cases carried nearly all the value, so we shipped in six weeks instead of attempting a nine month full coverage project.",
+p:["Chasing one hundred percent automation as a target, which produces an unmaintainable suite",
+"Automating a feature that is still being redesigned, so scripts break every sprint",
+"Automating at the UI layer what could be verified far more cheaply at the API layer"]},
+
+{id:"AT-1.03",tr:"aut",lv:1,t:"Manual versus automation and ROI",
+k:["roi","break even","payback","business case"],
+d:["Automation is an investment with an up front cost and a recurring maintenance cost, so the business case has to be arithmetic rather than enthusiasm. The break even calculation is straightforward: scripting effort plus annual maintenance effort, divided by the manual effort saved per cycle, gives the number of cycles before you are ahead. A suite that takes two hundred hours to build and saves twelve hours per cycle breaks even at roughly seventeen cycles, so if you release monthly that is well over a year and probably not worth it, while if you run it on every commit it pays back in weeks.",
+"The comparison itself is not a competition. Manual testing wins on new features, exploratory work, usability, and anything requiring judgement. Automation wins on repetition, breadth, consistency and speed. The metrics worth tracking after the fact are hours saved per cycle, regression cycle time, pipeline feedback time, escaped defect rate, and the maintenance percentage of total automation effort. If maintenance exceeds roughly thirty percent of automation effort, the framework design is the problem, not the application."],
+s:["Measure the current manual execution effort per regression cycle honestly",
+"Estimate scripting effort per test and add realistic annual maintenance",
+"Divide total investment by saving per cycle to get the break even cycle count",
+"Compare that against your actual release and pipeline execution frequency",
+"Track hours saved, cycle time and pipeline feedback time after implementation",
+"Track maintenance as a percentage of automation effort and investigate if it exceeds thirty percent",
+"Reassess each release and retire scripts whose maintenance exceeds their value"],
+ex:"A proposal to automate a low traffic admin module was declined on the numbers: eighty hours to script, executed twice a year, saving three hours a run. Break even was over thirteen years. The same eighty hours went into automating the checkout API suite, which ran on every commit, roughly sixty times a month, and paid back within the first month.",
+iv:"I treat it as arithmetic. Scripting plus annual maintenance divided by saving per cycle gives the break even cycle count, and I compare that with how often the suite will actually run. That is why pipeline frequency matters more than test count. I also track maintenance as a percentage of automation effort, and if it goes above about thirty percent I treat it as a framework design problem rather than an application problem. I once declined automating an admin module with a thirteen year payback and put the same effort into a checkout API suite that ran sixty times a month and paid back in weeks.",
+p:["Presenting automation benefit as hours saved without subtracting maintenance cost",
+"Ignoring how often the suite will actually execute, which dominates the payback",
+"Never retiring scripts, so maintenance grows until it consumes the entire team"]},
+
+{id:"AT-1.04",tr:"aut",lv:1,t:"Programming fundamentals for testers",
+k:["java","python","oops","collections","exception handling"],
+d:["Automation is software development, so real fluency in one language is not optional. Java, Python, JavaScript and C sharp all work; the choice should follow the team and the application stack rather than fashion. What matters is depth in one rather than familiarity with three.",
+"The required ground is: variables and data types, operators, conditionals, loops, functions with parameters and return values, and exception handling with meaningful error messages. Then collections, because test data lives in them: arrays, lists, sets, maps or dictionaries, and iteration over them. Then object oriented concepts, because every framework is built on them: classes and objects for page objects, inheritance for base classes, polymorphism and method overriding for browser or environment variants, abstraction and interfaces for swappable implementations, encapsulation for keeping locators private. Then file and format handling for JSON, CSV, Excel and properties files. Finally clean code practice: small methods that do one thing, meaningful names, no duplication, no hardcoded values."],
+s:["Pick one language matching the development stack and go deep rather than wide",
+"Master variables, data types, operators, conditionals and loops until they are automatic",
+"Learn functions with parameters and returns, and exception handling with clear messages",
+"Learn collections and iteration, since all test data handling depends on them",
+"Learn object oriented concepts by building a page object hierarchy with a base class",
+"Learn file and format handling for JSON, CSV, Excel and configuration files",
+"Practise clean code: single responsibility methods, meaningful names, no hardcoded values"],
+ex:"A tester who knew only recorded scripts could not explain why a shared static WebDriver broke parallel execution. After learning object oriented basics properly, the same person rewrote it with a thread local driver in a base class, and the suite ran five threads reliably. The blocker was never Selenium knowledge, it was the language fundamentals underneath it.",
+iv:"I treat automation as software development, so I went deep in one language rather than shallow in several. Beyond syntax the things that actually matter daily are collections for test data, exception handling with useful messages, and object oriented concepts, because the whole framework is built on them. Inheritance gives me a base page and base test, encapsulation keeps locators private, and interfaces let me swap implementations for browsers or data sources. Clean code discipline matters too. I have seen parallel execution fail purely because someone shared a static driver, which is a language level misunderstanding rather than a tool problem.",
+p:["Learning tool syntax while skipping language fundamentals, then hitting a wall at framework design",
+"Writing everything in one long method, which makes reuse and debugging impossible",
+"Copying code from the internet without understanding it, so failures cannot be diagnosed"]},
+
+{id:"AT-1.05",tr:"aut",lv:1,t:"Locators and the DOM",
+k:["locators","xpath","css selector","dom","shadow dom"],
+d:["A locator is how a script identifies an element on a page, and locator quality is the single biggest determinant of UI test stability. Understanding the DOM as a tree of nodes with attributes and relationships is the prerequisite, because every locator strategy is a way of describing a position in that tree.",
+"The preference order is: a dedicated test attribute agreed with developers, then id, then name, then a stable CSS selector, then relative XPath. CSS selectors are concise and fast and handle class, attribute, child and sibling relationships. XPath is more powerful because it can traverse upward to a parent, match on visible text, and use functions such as contains, starts-with and normalize-space. Use XPath when you need text matching or upward traversal, otherwise prefer CSS. What you must never use is an absolute XPath, an auto generated dynamic id, or an index that shifts when the data changes. Modern complications worth knowing: elements inside iframes need a context switch, and elements inside a shadow DOM are not reachable by ordinary locators at all."],
+s:["Inspect the element and read all of its attributes before choosing a strategy",
+"Ask developers for a stable dedicated test attribute on key elements, which is the most durable fix",
+"Prefer id, then name, then CSS selector, then relative XPath in that order",
+"Use CSS selectors for class, attribute, child and sibling relationships",
+"Use XPath only where you need text matching, contains, or traversal to a parent or ancestor",
+"Never use absolute XPath, dynamic generated ids, or positional indexes on data driven lists",
+"Validate every locator matches exactly one element, and confirm whether it sits inside an iframe or shadow DOM"],
+ex:"A grid based test used an XPath with a row index. It passed for months, then failed every night once the seed data changed order. Replacing the index with an XPath that matched on the row's visible order number, and requesting a test attribute from the developers on the action button, ended the failures permanently. The suite had never been flaky, the locator had been describing a position instead of an identity.",
+iv:"A locator describes a position in the DOM, and its quality decides whether UI tests are stable. My order is a dedicated test attribute agreed with developers, then id, then name, then CSS, then relative XPath. I use CSS by default for speed and readability and reach for XPath only when I need text matching or upward traversal, using contains, starts-with or normalize-space. I never use absolute XPath, generated ids or positional indexes, because they describe position rather than identity. I also check for iframes and shadow DOM, since shadow DOM elements are not reachable by ordinary locators at all.",
+p:["Copying absolute XPath from browser dev tools, which breaks on any markup change",
+"Using a positional index on a list whose order depends on data",
+"Blaming flakiness on the tool when the locator was never uniquely identifying the element"]}
+);
+window.C.push(
+{id:"AT-2.01",tr:"aut",lv:2,t:"Selenium WebDriver architecture",
+k:["selenium","webdriver","w3c protocol","browser driver","architecture"],
+d:["Selenium WebDriver has four parts: your test code, the language binding, the browser driver, and the real browser. Your code calls a binding method, the binding serialises it into a W3C WebDriver protocol request, that request travels over HTTP to the browser driver, the driver executes it natively on the browser, and the response returns up the same chain. Every command is a request and response round trip, which is why UI automation is inherently slower than API automation.",
+"Two details matter in interviews. First, since Selenium 4 the protocol is W3C standard rather than the older JSON Wire Protocol, which removed a translation layer and made behaviour consistent across browsers. Second, the driver executable is browser and version specific, which is why version mismatches are the most common setup failure and why modern Selenium manages drivers automatically. Selenium 4 also added relative locators, a proper Chrome DevTools Protocol integration for network and console access, and improved window and tab handling."],
+s:["Add the Selenium dependency through the build tool rather than manual jar files",
+"Instantiate the driver for the target browser, letting Selenium manage the driver binary",
+"Set implicit or explicit waiting strategy and window size before navigation",
+"Navigate to the application under test",
+"Locate elements and perform actions, each of which is a protocol round trip",
+"Assert on the resulting state using the test runner's assertions",
+"Quit the driver in a teardown block so no orphan browser processes remain"],
+ex:"A suite failed on a build server with a session not created error while passing on every developer machine. The cause was a Chrome auto update on the agent leaving the pinned driver behind. Moving to Selenium managed drivers and pinning the browser version in the container ended a class of failure that had been misreported as flakiness for weeks.",
+iv:"Four layers: test code, language binding, browser driver, browser. My command becomes a W3C WebDriver protocol request over HTTP to the driver, the driver executes it natively and the response comes back, so every single action is a round trip, which is why UI automation is inherently slower than API. Since Selenium 4 the protocol is W3C rather than JSON Wire, and Selenium manages driver binaries, which removes the most common setup failure, the driver and browser version mismatch. Selenium 4 also gave us relative locators and DevTools access for network and console inspection.",
+p:["Not quitting the driver in teardown, leaving orphan browsers that exhaust the agent",
+"Manually managing driver binaries in a shared pipeline where browsers auto update",
+"Explaining architecture without mentioning that each command is an HTTP round trip"]},
+
+{id:"AT-2.02",tr:"aut",lv:2,t:"Waits and synchronization",
+k:["implicit wait","explicit wait","fluent wait","flaky","thread sleep"],
+d:["Synchronization failures are the number one cause of flaky UI tests. The script executes faster than the browser renders, so the element is not there, not visible, or not yet interactive when the command arrives. Waits exist to make the script observe the application state rather than assume it.",
+"An implicit wait is a single global setting that makes element lookups poll for up to a set duration. It is simple but blunt: it applies to every find call, it does nothing for conditions other than presence, and it does not help when the element exists but is disabled or covered. An explicit wait targets one element and one condition with its own timeout, which is what you should use for anything conditional: visibility, clickability, presence, staleness, text present, attribute value, alert present, frame availability. A fluent wait is an explicit wait with a configurable polling interval and ignored exception types, useful for elements that flicker or throw intermittently. Never mix implicit and explicit waits, because timeouts can compound unpredictably. And never use a hardcoded sleep, which is either too short and flaky or too long and slow."],
+s:["Remove every hardcoded sleep from the codebase and treat any new one as a defect",
+"Choose one strategy and prefer explicit waits over a global implicit wait",
+"Wrap explicit waits in reusable helper methods on a base page class",
+"Wait for the specific condition you actually need, usually clickable rather than merely present",
+"Use fluent wait with ignored exceptions for elements that appear intermittently",
+"Wait for asynchronous completion signals such as a spinner disappearing rather than a fixed duration",
+"Set sensible global timeouts and fail fast with a clear message naming the element and condition"],
+ex:"A checkout test failed roughly one run in six. The button existed and was clickable, but an overlay spinner still covered it, so the click landed on the overlay. Waiting for the spinner to become invisible before waiting for the button to be clickable removed the failure entirely. The fix was a condition change, not a longer timeout, which is the distinction that matters.",
+iv:"Synchronization is the main cause of flakiness, because the script runs faster than the browser renders. Implicit wait is one global polling timeout on element lookups, and it only helps with presence. Explicit wait targets a specific element and condition with its own timeout, which is what I use for visibility, clickability, staleness or text presence. Fluent wait adds a custom polling interval and ignored exceptions. I never mix implicit and explicit, and I treat any hardcoded sleep as a defect. One intermittent checkout failure turned out to be a spinner overlay covering a clickable button, so the fix was waiting for the overlay to disappear, not extending the timeout.",
+p:["Solving flakiness by increasing sleep duration, which hides the problem and slows the suite",
+"Mixing implicit and explicit waits, producing unpredictable compounded timeouts",
+"Waiting for presence when the test actually needs the element to be visible and enabled"]},
+
+{id:"AT-2.03",tr:"aut",lv:2,t:"Handling elements and browser events",
+k:["dropdown","iframe","alert","windows","actions","javascript executor"],
+d:["Real applications need much more than click and type. Dropdowns come in two kinds: a native select element handled by a select helper class with selection by visible text, value or index, and a custom dropdown built from divs, which must be handled as a click plus a list search. Frames require an explicit context switch by index, name or element, and every operation stays inside that frame until you switch back to the default content, which is why forgetting the switch back causes confusing element not found errors.",
+"Browser level alerts are outside the DOM, so they need a switch to alert followed by accept, dismiss or send keys. Multiple windows and tabs need window handle capture and explicit switching. The actions class covers hover, right click, double click, drag and drop, click and hold and keyboard combinations. File upload is best done by sending the file path to the input element rather than automating the OS dialog. A JavaScript executor is the escape hatch for scrolling, forced clicks on obscured elements, reading hidden values and setting attributes, and it should be used deliberately, because a forced click can pass a test on a button a real user could never reach."],
+s:["Use the select helper for native select elements, by visible text, value or index",
+"Handle custom dropdowns as a click on the trigger, then a wait, then a match in the option list",
+"Switch into the correct frame before interacting, and always switch back to default content",
+"Handle alerts by switching to the alert, then accept, dismiss or send keys",
+"Capture window handles before opening a new tab, then switch by comparing handles",
+"Use the actions class for hover, right click, double click, drag and drop and key combinations",
+"Upload files by sending the absolute path to the file input, not by automating the OS dialog",
+"Reserve the JavaScript executor for scrolling and genuinely necessary forced interactions"],
+ex:"A payment test failed at the card entry step with element not found, even though the locator was correct in dev tools. The card form was inside a third party iframe. Adding the frame switch fixed it in one line. The same suite later had a false pass, where a JavaScript forced click submitted a button that was visually covered by a consent banner a real user had to dismiss first.",
+iv:"Native selects go through the select class by text, value or index, and custom div based dropdowns have to be handled as a click plus an option search. Frames need an explicit switch and a switch back to default content, which is where most element not found errors come from. Alerts are outside the DOM so they need a switch to alert. Multiple tabs need window handle capture. The actions class covers hover, drag and drop and key combinations. I use a JavaScript executor for scrolling but I am careful with forced clicks, because I have seen one produce a false pass on a button that was covered by a consent banner in reality.",
+p:["Forgetting to switch back from an iframe, causing later steps to fail confusingly",
+"Using a JavaScript forced click to bypass an overlay, which creates a false pass",
+"Trying to automate the operating system file dialog instead of sending the path to the input"]},
+
+{id:"AT-2.04",tr:"aut",lv:2,t:"Test runners — TestNG, JUnit, PyTest",
+k:["testng","junit","pytest","annotations","assertions","data provider"],
+d:["The runner is the framework that owns test lifecycle, ordering, grouping, parameterisation, parallelism and reporting hooks. Without it you have scripts, not a test suite.",
+"The concepts transfer across tools. Lifecycle hooks run before and after each method, class and whole suite, which is where driver setup, teardown, login and data preparation belong, never inside the test body. Assertions decide pass or fail: a hard assertion stops at the first failure, a soft assertion collects several and reports them together, which is right when verifying many fields on one page. Grouping and tagging let you run a smoke subset or exclude slow tests. Dependencies let a test skip when its prerequisite failed rather than failing noisily. Parameterisation through data providers or fixtures separates data from logic. Parallel execution is configured at method, class or suite level. Listeners give you the hooks for screenshot on failure, logging and retry of failed tests, and the suite configuration file is what the pipeline actually invokes."],
+s:["Put driver setup and teardown in lifecycle hooks, never inside test methods",
+"Use hard assertions to stop on critical failures and soft assertions for multi field verification",
+"Tag every test into groups such as smoke, regression and slow, so subsets can be run",
+"Use dependencies so dependent tests skip cleanly instead of failing noisily",
+"Parameterise with data providers or fixtures to keep data out of the logic",
+"Configure parallel execution and confirm the tests are genuinely independent first",
+"Add listeners for screenshot on failure, structured logging and controlled retry",
+"Drive execution from the suite configuration file so the pipeline has one entry point"],
+ex:"A registration form test asserted eleven validation messages with hard assertions, so every run reported only the first failure and took four builds to uncover four defects. Switching to soft assertions surfaced all four in a single run. Separately, adding a listener that captured a screenshot and the page source on failure cut the average defect triage conversation from a day to minutes.",
+iv:"The runner owns lifecycle, grouping, parameterisation, parallelism and reporting hooks. I keep setup and teardown in lifecycle hooks rather than in test bodies, and I choose assertions deliberately: hard assertions to stop on critical failures, soft assertions when I am verifying many fields on one page. I tag tests into smoke, regression and slow so the pipeline can run subsets, use data providers to keep data out of logic, and add listeners for screenshot on failure and controlled retry. Switching a registration test from hard to soft assertions once surfaced four defects in one run instead of across four builds.",
+p:["Doing driver setup inside the test method, which breaks parallel execution and reuse",
+"Using hard assertions everywhere, so each run reveals only the first of several defects",
+"Enabling parallel execution before making the tests independent and thread safe"]},
+
+{id:"AT-2.05",tr:"aut",lv:2,t:"Page Object Model",
+k:["pom","page object","page factory","design pattern","maintainability"],
+d:["The Page Object Model gives every page or reusable component a class that holds its locators and exposes business level methods. The test then reads as a sequence of business steps and contains no locators at all. The payoff is that when the markup changes, you edit one class instead of hunting through fifty tests.",
+"The rules that make it work are specific. Locators are private fields, never exposed. Methods are named for business intent, such as loginAs or applyCoupon, not for mechanics like clickButton. Assertions do not belong in page classes; they belong in tests, because a page object describes capability while a test describes expectation. Navigation methods return the next page object, which enables readable chaining. A base page holds shared waits, utilities and the driver reference. Page components, such as a header, a nav bar or a reusable table widget, get their own classes so they are not duplicated across every page. Page factory with lazy initialisation is an optional convenience for annotation based element declaration, not a requirement of the pattern."],
+s:["Create one class per page, plus classes for reusable components such as header or table",
+"Declare all locators as private fields inside that class",
+"Expose public methods named for business intent, not for UI mechanics",
+"Keep assertions out of page classes and place them in the tests",
+"Return the next page object from navigation methods to enable chaining",
+"Put shared waits, driver reference and utilities in a base page class",
+"Refactor duplicated interaction code into the base page or a component class"],
+ex:"A suite with locators inline across seventy tests needed nine days of edits after a UI framework upgrade renamed classes across the app. It was rewritten with page objects and a base page. The next upgrade changed the login and navigation markup again, and the same change took under two hours because it touched three classes rather than seventy files.",
+iv:"Each page or reusable component gets a class holding its locators privately and exposing business level methods, so the test reads as business steps with no locators in it. I name methods for intent, keep assertions in the tests rather than the page objects, return the next page object from navigation methods for chaining, and put shared waits and utilities in a base page. I also make components like headers and tables their own classes to avoid duplication. The concrete benefit: after one UI framework upgrade a locator change took two hours across three classes, where the previous version of that suite had taken nine days.",
+p:["Putting assertions inside page objects, which couples capability to expectation",
+"Exposing raw WebElements publicly, so tests start manipulating the DOM directly",
+"Creating one page object per test rather than per page, which reintroduces duplication"]},
+
+{id:"AT-2.06",tr:"aut",lv:2,t:"Framework types and project structure",
+k:["data driven","keyword driven","hybrid","framework","structure"],
+d:["Framework type describes how test logic, data and reusability are organised. Linear scripting, usually from record and playback, is the fastest to produce and the most expensive to own, because everything is duplicated and hardcoded. Modular frameworks extract reusable functions per module. A data driven framework separates data from logic so one script covers many combinations, with data in Excel, CSV, JSON or a database. A keyword driven framework externalises the flow itself into a keyword table so that non programmers can author tests, at the cost of a substantial engine to build and maintain. A hybrid framework, which is what most real projects use, combines data driven execution with page objects and often BDD on top.",
+"Structure matters as much as type. A maintainable project separates tests, page objects, components, utilities, test data, configuration, and reports, keeps every environment value in external configuration, and holds no credentials in code. If adding a new test requires editing more than one or two places, the structure is wrong."],
+s:["Choose the type by team skill and change rate, defaulting to hybrid with page objects",
+"Separate the project into tests, pages, components, utilities, data, config and reports",
+"Externalise all test data into JSON, CSV, Excel or a database",
+"Externalise all environment values into configuration files selected by a runtime parameter",
+"Keep credentials out of the repository, in a vault or pipeline secret store",
+"Build shared utilities for waits, data generation, database access and API helpers",
+"Document how to add a new test, and keep that path to one or two files"],
+ex:"A hybrid framework on an insurance product carried the premium calculation matrix as an external spreadsheet the business team owned. When actuarial rates changed quarterly, the business updated the sheet and the same twelve scripts covered four hundred combinations with no code change at all. Under the previous linear framework the same change had meant editing dozens of hardcoded scripts every quarter.",
+iv:"Linear is record and playback, quickest to write and worst to own. Modular extracts reusable functions. Data driven separates data from logic so one script covers many combinations. Keyword driven externalises the flow so non coders can author, at the cost of building an engine. In practice I use hybrid: page objects plus data driven execution, sometimes with BDD on top. I care just as much about structure, with tests, pages, utilities, data, config and reports separated, no environment values or credentials in code. On an insurance product the business owned the rate spreadsheet, so quarterly actuarial changes needed no code change at all.",
+p:["Hardcoding environment URLs and credentials, so the suite runs in exactly one place",
+"Building a keyword driven engine nobody outside the automation team ever uses",
+"Leaving test data inside test methods, which makes adding a combination a code change"]},
+
+{id:"AT-2.07",tr:"aut",lv:2,t:"Build tools and dependency management",
+k:["maven","gradle","npm","pip","dependency","profiles"],
+d:["A build tool turns a folder of code into a reproducible, single command build that behaves identically on your machine and on a build agent. Maven and Gradle in the Java world, npm in JavaScript, pip with a requirements file in Python: the responsibilities are the same. Declare every dependency and its exact version in one file, resolve and cache them, compile, run tests through a plugin, and produce reports.",
+"The practices that matter are pinning versions rather than accepting whatever is latest, so a suite that passed yesterday is not broken by an upstream release today, and never committing library binaries. Profiles or command line parameters let one build run against different environments and browsers, which is what makes the same suite usable locally and in the pipeline. The build lifecycle knowledge people get asked about in Java interviews is which phase compiles, which runs unit tests, which runs integration tests and which packages, and which plugin is bound to each."],
+s:["Initialise the project with the standard directory convention for the tool",
+"Declare every dependency with a pinned version in the single build file",
+"Bind the test execution plugin so tests run as part of the build lifecycle",
+"Add profiles or parameters for environment, browser and test group selection",
+"Run the whole suite from one command line so any agent can reproduce it",
+"Commit the build file and lock file, and gitignore all binaries, reports and logs",
+"Cache dependencies in the pipeline to keep build times reasonable"],
+ex:"A nightly suite began failing with a method not found error after nobody had changed anything. A transitive dependency had been declared with an open version range and picked up a new release overnight. Pinning versions and adding a dependency lock ended a category of unexplained failures that the team had been recording as flakiness.",
+iv:"The build tool gives me a reproducible one command build with declared, pinned dependencies. I pin versions rather than allowing ranges, because an upstream release can otherwise break a suite that passed yesterday, and I never commit binaries. I use profiles or command line parameters for environment, browser and test group so the same suite runs locally and in the pipeline unchanged. I once chased a method not found failure that nobody had caused, and it turned out a transitive dependency with an open version range had picked up a new release overnight. Pinning ended that whole category of failure.",
+p:["Allowing open version ranges, which makes builds non reproducible over time",
+"Committing jars, node modules or reports into the repository",
+"Hardcoding the environment into the build so it can only run one way"]},
+
+{id:"AT-2.08",tr:"aut",lv:2,t:"Version control with Git",
+k:["git","branch","pull request","merge conflict","gitignore"],
+d:["Automation code belongs in the same version control discipline as production code. That means branches, small commits, peer reviewed pull requests, and a history somebody can read a year later.",
+"The daily workflow is: clone, create a feature branch from the current main, make small logical commits with messages that say why rather than what, pull and rebase or merge to stay current, push, then raise a pull request for review. Review is not a formality on test code; it is where locator quality, hardcoded values and missing waits get caught before they become nightly failures. Conflicts are resolved locally, never by force pushing over someone's work. A branching model, whether trunk based with short lived branches or a Git flow variant, should match the release process. Two hygiene items are commonly missed: a gitignore covering reports, logs, screenshots, binaries and local configuration, and an absolute rule that credentials, tokens and keys never enter the repository, because history is permanent."],
+s:["Clone the repository and create a short lived feature branch from current main",
+"Commit small logical changes with messages explaining the reason for the change",
+"Pull and rebase or merge frequently so the branch never drifts far from main",
+"Push and raise a pull request, and expect review comments on test code as on any code",
+"Resolve conflicts locally by understanding both changes, never by force pushing",
+"Maintain a gitignore for reports, logs, screenshots, binaries and local config",
+"Keep all secrets out of the repository and in a vault or pipeline secret store",
+"Tag releases so a suite version can be matched to an application version"],
+ex:"A pull request review on a new checkout test caught three things: an absolute XPath, a hardcoded staging URL and a hardcoded three second sleep. None would have failed on the author's machine. All three would have failed nightly in the pipeline within a week. Fifteen minutes of review prevented a fortnight of intermittent noise.",
+iv:"I treat automation code exactly like production code. Short lived feature branches off main, small commits with messages that explain why, frequent rebase or merge to avoid drift, then a pull request with real review. I insist on review of test code because that is where absolute XPaths, hardcoded URLs and sleeps get caught before they become nightly failures. I keep a gitignore for reports, logs and screenshots, and I never allow credentials into the repository because history is permanent. I also tag releases so a suite version can be traced to an application version.",
+p:["Committing directly to main so nothing is ever reviewed",
+"Committing secrets and assuming deletion in a later commit removes them from history",
+"Force pushing to a shared branch and destroying a colleague's commits"]},
+
+{id:"AT-2.09",tr:"aut",lv:2,t:"Reporting, logging and failure evidence",
+k:["extent report","allure","logging","screenshot","artifacts"],
+d:["A run only has value if somebody can read the result and act on it. The target is that a failure is diagnosable from the report alone, without rerunning locally. That requires four things.",
+"Structured logging at appropriate levels, so the log shows the sequence of steps rather than raw tool noise. Automatic screenshot capture on failure, attached to the report, plus the page source or DOM snapshot when layout is involved. Rich HTML reporting such as Extent or Allure with per test steps, timings, categorisation and history, because a plain pass or fail count tells nobody why. And full request and response payloads attached for API tests, which is normally the single most useful artifact. Video or trace capture is worth it for intermittent UI failures. Finally the report must be published as a pipeline artifact and summarised into the team channel, because a report saved on an agent nobody visits does not exist. A good rule is to make failure messages state what was expected, what was found and on which element."],
+s:["Add a logging framework with configured levels and a readable log per test",
+"Capture a screenshot automatically on every failure through a listener or hook",
+"Capture page source or a DOM snapshot alongside the screenshot for layout failures",
+"Generate a rich HTML report with steps, timings, categories and historical trend",
+"Attach request and response payloads for every API test",
+"Record video or a trace for tests that fail intermittently",
+"Publish the report as a pipeline artifact and post a summary with a link to the team channel",
+"Write failure messages that name the element, the expected state and the actual state"],
+ex:"Before instrumentation, a nightly failure meant a developer asking for steps and a tester rerunning locally, which often passed. After adding screenshot, DOM snapshot, log and video capture attached to the report, the same failures were diagnosed straight from the artifact. Average time from red build to a filed defect with evidence dropped from most of a day to about twenty minutes.",
+iv:"My goal is that a failure is diagnosable from the report alone without rerunning locally. So I add structured logging that reads as steps, automatic screenshot plus page source capture on failure, an HTML report such as Extent or Allure with steps, timings and history, and for API tests the full request and response payloads. For intermittent UI failures I capture video or a trace. Then I publish it as a pipeline artifact and post a summary with the link to the team channel, because a report sitting on an agent does not exist. That took our red build to filed defect time from a day to about twenty minutes.",
+p:["Reporting only pass and fail counts, so every failure requires a local rerun",
+"Capturing a screenshot but not attaching it to the report or the pipeline artifacts",
+"Logging raw tool output instead of readable test steps, which nobody reads"]},
+
+{id:"AT-2.10",tr:"aut",lv:2,t:"BDD with Cucumber and Gherkin",
+k:["bdd","cucumber","gherkin","given when then","scenario outline"],
+d:["Behaviour driven development is a collaboration practice first and a tool second. The point is that business, development and testing agree on concrete examples of behaviour before code is written, and those examples are written in Gherkin so they are simultaneously the specification and the executable test.",
+"Gherkin uses Feature, Scenario, Given for precondition, When for action, Then for expected outcome, plus And and But. Background holds shared preconditions, Scenario Outline with an Examples table handles data variations, and tags allow selective execution. Step definitions bind each line to code, and hooks handle setup and teardown. The failure mode that gives BDD a bad reputation is writing UI mechanics into Gherkin: enter text in field, click button, verify label. That produces brittle, unreadable specifications and all of the overhead with none of the collaboration benefit. Steps must be declarative and business level, and reusable across scenarios. If no business stakeholder ever reads or writes the feature files, you are paying for BDD without receiving it."],
+s:["Run a three amigos conversation and agree concrete examples before development starts",
+"Write the feature file in declarative business language, not UI mechanics",
+"Use Background for shared preconditions and keep scenarios independent",
+"Use Scenario Outline with an Examples table for data variations",
+"Tag scenarios for smoke, regression and feature level selective runs",
+"Implement step definitions thinly, delegating all work to page objects and services",
+"Add hooks for setup, teardown and screenshot on failure",
+"Publish the living documentation report so the business can actually read the outcome"],
+ex:"A team's original scenario read as ten lines of clicking and typing, and no product owner ever read it. Rewritten declaratively as a learner with an expired subscription attempts to open a paid lesson and is shown the renewal prompt, the same scenario became one the product owner reviewed and corrected before development, which caught a missing grace period rule entirely on paper.",
+iv:"BDD is collaboration first, tooling second. The value comes from business, development and testing agreeing concrete examples before coding, expressed in Gherkin so the specification is also executable. I keep steps declarative and business level, use Background for shared preconditions, Scenario Outline with Examples for data variations, and tags for selective runs. Step definitions stay thin and delegate to page objects. The failure I watch for is UI mechanics in Gherkin, which gives you all the overhead and none of the collaboration. Rewriting one scenario declaratively got the product owner reading it, and that review caught a missing grace period rule before any code existed.",
+p:["Writing click and type mechanics into feature files, making them brittle and unreadable",
+"Adopting Cucumber when no business stakeholder will ever read a feature file",
+"Putting logic and locators into step definitions instead of delegating to page objects"]}
+);
+window.C.push(
+{id:"AT-3.01",tr:"aut",lv:3,t:"API automation",
+k:["rest assured","newman","json schema","contract","api automation"],
+d:["API automation is the highest value layer in most suites: an API test runs in tens of milliseconds where the equivalent UI test takes tens of seconds, it does not break when a button moves, and it exists before the interface does. A healthy pyramid puts most functional coverage here.",
+"With RestAssured, Requests or a similar library you build the request, send it, and assert in layers: status code, headers, body fields, and JSON schema conformance, which is what actually catches a silently changed contract. Then negative and security relevant cases: missing mandatory fields, wrong data types, invalid and expired tokens, another user's resource ID against your own token, oversized payloads, SQL and script payloads in string fields. Then behaviour: response time, pagination, sorting, rate limiting, and idempotency of repeated calls. Chaining passes tokens and identifiers between calls, and every environment value stays in configuration. Postman collections executed through Newman are a legitimate alternative when the team prefers a collection first workflow, and both run identically in a pipeline."],
+s:["Read the specification, ideally OpenAPI, and derive the request and response contract",
+"Build the request with base URI, path, headers, authentication, query and body",
+"Assert the exact status code, then headers, then individual body fields",
+"Validate the full response against a JSON schema to catch silent contract changes",
+"Cover negative cases: missing fields, wrong types, invalid and expired tokens, oversized payloads",
+"Cover authorisation by requesting another user's resource with your own valid token",
+"Chain calls with extracted tokens and identifiers, keeping environment values in config",
+"Assert response time thresholds and verify database state where the call writes data",
+"Run the suite in the pipeline on every commit and fail the build on breakage"],
+ex:"A backend release changed a response field from a number to a string. Every UI test still passed because the browser rendered it identically, and the mobile app crashed in production two days later. Adding JSON schema validation to the API suite meant the same change was caught in the pull request build, before it ever merged.",
+iv:"API automation is where I put most functional coverage, because a test runs in milliseconds, does not break when the UI changes, and is available before the interface. I assert in layers: status code, headers, body fields, then full JSON schema validation, which is what catches a silently changed contract. Then negative and authorisation cases, including requesting another user's resource with my own token. Then behaviour like response time, pagination and idempotency. A backend release once changed a numeric field to a string and every UI test passed while the mobile app crashed in production. Schema validation would have caught it in the pull request build.",
+p:["Asserting only the status code, which passes even when the payload shape has changed",
+"Skipping authorisation tests, which are the most commonly exploited API weakness",
+"Storing tokens and environment URLs in the test code instead of in configuration"]},
+
+{id:"AT-3.02",tr:"aut",lv:3,t:"Mobile automation with Appium",
+k:["appium","android","ios","capabilities","gestures","device farm"],
+d:["Appium drives native, hybrid and mobile web applications on Android and iOS using the WebDriver protocol, so the concepts transfer directly from Selenium. It sits as a server between your test and the platform's own automation engine, UiAutomator2 for Android and XCUITest for iOS, which is why the same script can target both with different capabilities.",
+"The practical work is in three areas. Capabilities define the session: platform, version, device or emulator, application path or package and activity, automation engine, and options such as no reset and full reset which control app state between tests. Locators are platform specific: accessibility id is the most stable and works across both platforms, then id or resource id, then UiAutomator or iOS predicate and class chain strings, with XPath a last resort because it is notably slow on mobile. Gestures need the W3C actions API for tap, swipe, scroll, long press and pinch. Then context switching between native and webview for hybrid apps. Real device coverage means a device farm, because emulators cannot reproduce interrupts, real network conditions, camera, biometrics or manufacturer skins."],
+s:["Set up the platform SDK, an emulator or real device, and the Appium server with drivers",
+"Define desired capabilities including platform, version, device, app path and automation engine",
+"Choose reset behaviour deliberately so each test starts from a known app state",
+"Inspect elements with the Appium inspector and prefer accessibility id for locators",
+"Implement gestures using the W3C actions API rather than deprecated touch actions",
+"Handle context switching between native and webview for hybrid screens",
+"Cover mobile specific paths: permissions, interrupts, backgrounding and network changes",
+"Run on a real device cloud for manufacturer skins, and keep emulators for fast local runs"],
+ex:"A suite passed on emulators for months and failed on a real device farm on one manufacturer skin, where a system level permission dialog appeared with different button text. The locator matched the standard dialog only. Handling permission dialogs explicitly with an accessibility based strategy fixed it, and the team made real device runs mandatory before release rather than emulator only.",
+iv:"Appium uses the WebDriver protocol, so concepts carry over from Selenium, and it delegates to UiAutomator2 on Android and XCUITest on iOS. The work is in capabilities, which define platform, device, app and reset behaviour, in locator strategy where accessibility id is the most stable and XPath is slow enough to avoid, and in gestures through the W3C actions API. Hybrid apps need native to webview context switching. I insist on real device coverage before release, because emulators cannot reproduce interrupts, real networks, biometrics or manufacturer skins. One suite passed on emulators for months and failed on a skin whose permission dialog had different button text.",
+p:["Testing only on emulators and assuming real device behaviour is equivalent",
+"Using XPath as the default locator, which is markedly slow on mobile",
+"Leaving reset behaviour undefined, so tests inherit state from previous runs"]},
+
+{id:"AT-3.03",tr:"aut",lv:3,t:"Performance testing automation",
+k:["jmeter","k6","gatling","load model","percentile","bottleneck"],
+d:["Performance automation simulates many concurrent virtual users to measure response time, throughput and resource consumption, and to locate the bottleneck. The tooling is the easy part; the workload model and the analysis are what make it valid.",
+"Scripting means recording or building the business transaction, then parameterising the data so ten thousand users are not all using one account, and correlating dynamic values such as session tokens and CSRF tokens so the script is not replaying a dead session. Add think time and pacing so the profile resembles humans rather than a denial of service attack. Add assertions, because a fast error page is not a pass. The load profile defines ramp up, steady state and ramp down, and the test types are load to expected peak, stress beyond it, endurance for hours to expose leaks, and spike for sudden arrival. Analysis is where inexperience shows: report percentiles rather than averages, because a mean hides the ninety fifth percentile that users actually feel, and always correlate client side numbers with server CPU, memory, thread pools, database queries and network to identify the actual bottleneck rather than restating that the system is slow."],
+s:["Agree measurable non functional criteria and build the workload model from production analytics",
+"Script the business transaction and parameterise all user and data values",
+"Correlate dynamic values such as session and CSRF tokens so sessions stay valid",
+"Add think time, pacing and response assertions so errors cannot count as fast passes",
+"Configure the load profile with ramp up, steady state and ramp down",
+"Execute a baseline, then load, stress, endurance and spike tests",
+"Monitor server CPU, memory, thread pools, database and network throughout each run",
+"Report percentiles rather than averages, identify the bottleneck, tune, then rerun to compare"],
+ex:"A login API reported an acceptable average of eight hundred milliseconds, and the team signed it off. The ninety fifth percentile was nine seconds, driven by an unindexed query that only affected accounts with long history. Reporting percentiles and correlating with database metrics found it in one run. The average had been actively hiding the defect that real users were hitting.",
+iv:"The tool is the easy part, the workload model and the analysis are what make it valid. I build the profile from production analytics, parameterise all data so users are not sharing one account, and correlate dynamic tokens so I am not replaying dead sessions. I add think time, pacing and response assertions, because a fast error page must not count as a pass. Then baseline, load, stress, endurance and spike. In analysis I always report percentiles rather than averages and correlate with server side metrics. One login API had an acceptable average of eight hundred milliseconds hiding a ninety fifth percentile of nine seconds from an unindexed query.",
+p:["Reporting averages, which hide the tail latency real users experience",
+"Failing to correlate session tokens, so the script measures error responses at high speed",
+"Running load without server side monitoring, which identifies slowness but never its cause"]},
+
+{id:"AT-3.04",tr:"aut",lv:3,t:"CI/CD integration",
+k:["jenkins","github actions","pipeline","quality gate","fail fast"],
+d:["Continuous integration is where automation stops being a side project and becomes part of how software ships. The suite runs automatically on commit, pull request, merge and deployment, and it has authority: a failing quality gate blocks the merge.",
+"Pipeline design is the skill. Stages are ordered fastest and most informative first: checkout, build, static analysis and secret scanning, unit tests, API and integration tests, deploy to a test environment, then UI regression and finally optional long running suites. Fail fast, because there is no point running a forty minute UI suite when unit tests are red. Keep the pipeline definition as code in the repository so it is versioned and reviewed. Secrets come from the pipeline vault, never from the repository. Every stage publishes its report as an artifact and notifies the channel. Quality gates make it real: minimum coverage, zero critical vulnerabilities, all smoke tests green. And the pipeline has to be trusted, which means an amber suite that fails randomly must be fixed or quarantined, because a pipeline people routinely override provides no protection at all."],
+s:["Define the pipeline as code in the repository so it is versioned and reviewed",
+"Trigger on push, pull request, merge and scheduled nightly runs",
+"Order stages fastest first: build, static analysis, unit, API, deploy, UI regression",
+"Fail fast so an early failure stops the expensive later stages",
+"Store all secrets and credentials in the pipeline secret store",
+"Publish reports and artifacts from every stage and notify the team channel",
+"Enforce quality gates that block a merge, such as coverage thresholds and zero critical vulnerabilities",
+"Keep the pipeline trustworthy by fixing or quarantining flaky tests immediately"],
+ex:"A team had a single sixty five minute pipeline stage that ran everything, so developers merged without waiting and the gate was decorative. Splitting it into a four minute pull request gate of unit, static analysis and API smoke, with full UI regression on merge and nightly, made the gate fast enough to respect. Merge blocking became credible and escaped defects dropped within two releases.",
+iv:"CI is where automation gains authority, because a failing gate blocks the merge. I define the pipeline as code, trigger on push, pull request, merge and nightly, and order stages fastest and most informative first: build, static analysis and secret scanning, unit, API, deploy, then UI regression. I fail fast so expensive stages do not run behind a red unit stage. Secrets live in the pipeline vault. Above all the pipeline must be trusted, so flaky tests get fixed or quarantined immediately. I split one sixty five minute stage into a four minute pull request gate plus a full merge run, and merge blocking finally became credible.",
+p:["Running the entire suite on every commit until feedback is slow enough to be ignored",
+"Allowing developers to override a failing gate routinely, which makes it decorative",
+"Keeping credentials in the repository instead of the pipeline secret store"]},
+
+{id:"AT-3.05",tr:"aut",lv:3,t:"Parallel execution, Grid and Docker",
+k:["parallel","selenium grid","docker","thread safety","cloud grid"],
+d:["Parallel execution is the only realistic way to keep a growing UI suite inside a usable pipeline window, and it is also the fastest way to expose bad test design. Nothing about the tooling helps until the tests are independent and thread safe.",
+"Independence means no test depends on another's data, order or leftover state, and each creates and cleans its own data. Thread safety means no shared mutable state, and specifically a driver instance held per thread, typically through a thread local, because a static shared driver is the classic cause of tests interfering with each other. Then the infrastructure: Selenium Grid distributes sessions from a hub to nodes offering different browsers and versions. Docker makes those nodes disposable and identical, so a container per browser removes the version drift that plagues shared agents, and compose or Kubernetes scales them. A commercial cloud grid buys the long tail of browsers, versions and real devices without maintaining them. Tune thread count against actual CPU and memory rather than optimism, because oversubscribed agents produce timeouts that look exactly like application defects."],
+s:["Make every test independent, creating and cleaning its own data with no order dependency",
+"Hold the driver in a thread local so each thread owns its own browser session",
+"Remove all shared mutable state, including static utility fields and shared test data",
+"Configure parallelism at method, class or suite level in the runner",
+"Stand up Selenium Grid with a hub and browser nodes, or containerise nodes with Docker",
+"Pin browser and driver versions inside the images so environments are identical",
+"Use a cloud grid for the long tail of browsers, versions and real devices",
+"Tune thread count against available CPU and memory, and measure before increasing it"],
+ex:"Enabling five threads turned a green suite into thirty percent failures. Two causes: a static WebDriver shared across threads, and several tests reusing one hardcoded test user, so parallel logins invalidated each other's sessions. Moving to a thread local driver and generating a unique user per test restored stability, and the suite went from fifty two minutes to eleven.",
+iv:"Parallel execution is how you keep a growing suite inside a usable pipeline window, and it immediately exposes bad test design. Prerequisites first: every test independent with its own data and no order dependency, no shared mutable state, and a driver held in a thread local rather than a static field. Then infrastructure, Grid to distribute sessions, Docker to make nodes identical and disposable with pinned browser versions, and a cloud grid for the long tail. I tune thread count against real CPU and memory. When I first enabled five threads we got thirty percent failures from a static driver and a shared hardcoded test user.",
+p:["Enabling parallelism before making tests independent and thread safe",
+"Sharing one hardcoded test user across tests that then run simultaneously",
+"Oversubscribing threads on a small agent, producing timeouts that look like application defects"]},
+
+{id:"AT-3.06",tr:"aut",lv:3,t:"Modern tools — Playwright and Cypress",
+k:["playwright","cypress","auto wait","trace viewer","network interception"],
+d:["Playwright and Cypress changed the default expectations for UI automation. Both provide auto waiting built into every action, so most of the explicit wait code a Selenium suite carries simply does not exist. Both offer network interception, so you can mock a third party or force an error response instead of contriving the condition in a backend. Both offer strong debugging: Playwright's trace viewer gives a timeline with DOM snapshots, network and console per step, and Cypress gives time travel debugging in its runner.",
+"The architectural difference is worth knowing. Cypress runs inside the browser alongside the application, which makes it fast and gives deep access but historically constrained multi tab, multi origin and cross browser scenarios. Playwright drives browsers out of process over its own protocol, supports Chromium, Firefox and WebKit, multiple contexts and tabs, and parallel workers with sharding. Selenium remains the right answer where you need the widest legacy browser and grid ecosystem or where the team's whole stack is built on it. The honest interview position is that the choice depends on the application, the team's language and the existing investment, not on which tool is newest."],
+s:["Evaluate against your application: browser needs, iframes, multi origin, existing skills",
+"Rely on built in auto waiting and delete manual sleeps and most explicit waits",
+"Use network interception to mock third parties and force error and slow responses",
+"Reuse authenticated storage state so tests skip repeated logins",
+"Use the trace viewer or time travel debugger as the first diagnostic on any failure",
+"Use built in fixtures, parallel workers and sharding rather than building your own",
+"Add component level tests for the fastest feedback where the framework supports it",
+"Keep page object style organisation, because the pattern is tool independent"],
+ex:"A payment failure path required a third party gateway to return a declined response, which the sandbox produced only unreliably. Network interception let the test stub the declined response directly, so the failure path became a deterministic ninety millisecond test instead of a manual scenario the team ran twice a year and often skipped.",
+iv:"Both give auto waiting, so most explicit wait code disappears, network interception so I can mock a third party or force an error response deterministically, and strong debugging through trace viewer or time travel. Architecturally Cypress runs inside the browser, which is fast but historically constrained multi origin and multi tab work, while Playwright drives browsers out of process across Chromium, Firefox and WebKit with parallel workers and sharding. Selenium still wins on legacy browser and grid ecosystem breadth. I would choose on the application and the team's stack, not on novelty. Interception once turned an unreliable declined payment scenario into a deterministic ninety millisecond test.",
+p:["Migrating tools to fix flakiness caused by bad test design, which follows you to the new tool",
+"Mocking so much of the network that the test no longer proves anything about integration",
+"Discarding page object organisation because the new tool feels concise enough without it"]},
+
+{id:"AT-3.07",tr:"aut",lv:3,t:"Design patterns in test frameworks",
+k:["singleton","factory","builder","strategy","solid","fluent"],
+d:["Patterns are what keep a framework maintainable past a few hundred tests, and they are the difference between an automation engineer and a script author in a senior interview.",
+"Singleton gives one shared instance where that is genuinely correct, typically a configuration reader or logger, and specifically not the WebDriver in a parallel suite. Factory creates the right driver or the right API client from a parameter, so adding a browser is one class rather than a change across every test. Builder constructs complex request or test data objects readably without a constructor taking eleven arguments, and it is the cleanest way to express only the fields a test cares about. Strategy swaps implementations behind an interface, such as data source, environment or authentication method. Fluent interfaces let page methods chain into readable business flows. Decorator wraps a driver to add logging or screenshot behaviour without touching call sites. Underneath all of them sit the SOLID principles, especially single responsibility and dependency inversion, which are what actually keep the code changeable."],
+s:["Use a factory for driver and client creation so adding a variant touches one class",
+"Use singleton only for genuinely shared stateless services such as config and logging",
+"Use builder for complex test data and API request objects instead of long constructors",
+"Use strategy behind an interface for swappable data sources and authentication methods",
+"Use fluent chaining on page objects to make tests read as business flows",
+"Use a decorator or listener to add logging and screenshots without touching every call",
+"Apply single responsibility so each class has one reason to change",
+"Refactor duplication into utilities as soon as it appears a third time"],
+ex:"A framework needed to support Chrome, Firefox and a remote grid session. Without a factory, that meant conditional logic in every base class and three near duplicate setups. A driver factory reduced it to one class returning the configured driver, and adding Edge later was a nine line change with no test file touched at all.",
+iv:"Patterns are what keep a framework maintainable past a few hundred tests. I use a factory for driver and client creation so adding a browser touches one class, builder for complex test data and request objects rather than eleven argument constructors, strategy behind an interface for swappable data sources, and fluent chaining so tests read as business flows. Singleton I use only for genuinely shared stateless services like config and logging, never for the WebDriver in a parallel suite. Under all of it I care most about single responsibility. Adding Edge support to one framework was a nine line change because driver creation lived behind a factory.",
+p:["Making the WebDriver a singleton, which breaks parallel execution immediately",
+"Applying patterns decoratively where a plain method would be clearer",
+"Duplicating driver setup logic across base classes instead of extracting a factory"]},
+
+{id:"AT-3.08",tr:"aut",lv:3,t:"Test data and environment management",
+k:["test data","fixtures","faker","mocks","service virtualisation","config"],
+d:["Unstable data and unstable environments cause more red builds than real defects do, so both have to be engineered rather than assumed. The principle is that every test creates the state it needs and cleans up after itself, and depends on nothing another test left behind.",
+"Data strategies in order of preference: create the state through an API call in setup, which is fast and reliable; generate synthetic values with a faker for names, emails and identifiers so tests never collide; seed from a controlled fixture file for reference data; and only as a last resort rely on pre-existing shared records. Never depend on data another test created, and never rely on record ordering. Environment management means every URL, credential, timeout and feature flag lives in external configuration selected by a runtime parameter, with secrets in a vault. Unavailable or unreliable dependencies get mocks, stubs or full service virtualisation, so a third party sandbox being down does not stop your pipeline. And any data derived from production must be masked or synthesised, which in many jurisdictions is a legal requirement rather than a preference."],
+s:["Create the required state through API setup calls rather than through the user interface",
+"Generate unique synthetic data per test with a faker so parallel runs never collide",
+"Keep reference and configuration data in versioned fixture files",
+"Clean up created data in teardown so reruns are always repeatable",
+"Never depend on data created by another test or on record ordering",
+"Externalise every URL, credential, timeout and flag into configuration selected at runtime",
+"Store secrets in a vault or pipeline secret store, never in the repository",
+"Mock, stub or virtualise unreliable third parties, and mask any production derived data"],
+ex:"A nightly suite failed most Mondays. The cause was a shared test account whose data was reset by a weekend job. Rewriting the affected tests to create their own account through the registration API in setup and delete it in teardown ended the pattern. Nothing about the application had ever been wrong.",
+iv:"I engineer data and environments, because they cause more red builds than real defects. Every test creates its own state, preferably through an API setup call rather than the UI, with unique synthetic data from a faker so parallel runs never collide, and cleans up in teardown. I never depend on data another test created or on record ordering. Environment values all live in external configuration selected at runtime, with secrets in a vault, and unreliable third parties get mocked or virtualised. One suite failed almost every Monday because a shared account was reset by a weekend job, and self created data ended it.",
+p:["Depending on a shared long lived test account that other people and jobs also modify",
+"Creating data but never cleaning up, so the environment degrades until nothing passes",
+"Using unmasked production data in test environments, which is often a legal breach"]},
+
+{id:"AT-3.09",tr:"aut",lv:3,t:"Flaky tests and self-healing",
+k:["flaky","retry","quarantine","stability","ai self healing"],
+d:["A flaky test passes and fails without any change to the application, and it is more damaging than no test at all, because it teaches the team to ignore red builds. Flakiness must be measured, diagnosed and eliminated, not blanket retried.",
+"Measurement comes first: track pass rate per test over many runs so flakiness is a number rather than a feeling. Then diagnose by category. Timing is the largest, from missing or wrong wait conditions. Test interdependence and order dependency come next, then shared or stale test data, then environment instability, then genuinely non deterministic application behaviour, which is a real defect and should be reported as one. Fix at the cause: correct conditional waits, independent tests, self created data, stable locators. Retry has a narrow legitimate use as a diagnostic signal, recording that a test needed a retry, but as a permanent policy it hides defects. Chronic offenders get quarantined out of the blocking suite with an owner and a date, not left to erode trust. AI assisted self healing locators can reduce maintenance for markup changes, but every heal must be reviewed, because silently repointing a locator can make a test pass against the wrong element."],
+s:["Track pass rate per test across many runs to identify the flaky set objectively",
+"Classify each by cause: timing, order dependence, data, environment, or real non determinism",
+"Fix timing issues with correct conditional waits rather than longer timeouts",
+"Make tests independent and give each its own data",
+"Replace fragile locators with stable test attributes agreed with developers",
+"Investigate genuine application non determinism and raise it as a defect",
+"Use retry only as a diagnostic that records the retry, never as the permanent fix",
+"Quarantine chronic offenders out of the blocking suite with a named owner and a deadline"],
+ex:"A suite sat at eighty four percent pass rate and the team had stopped reading results. Categorising three weeks of failures showed sixty percent were waits, twenty five percent were shared data, and ten percent were a genuine race condition in the application that had been dismissed as flakiness for months. Fixing the first two and reporting the third took the suite to ninety nine percent, and the race condition turned out to be a real production defect.",
+iv:"A flaky test is worse than no test, because it trains the team to ignore red builds. So I measure first, tracking pass rate per test over many runs, then classify by cause: timing, order dependence, data, environment, or genuine application non determinism. Timing gets correct conditional waits, not longer timeouts. Retry I use only as a diagnostic that records that a retry happened, never as the fix. Chronic offenders get quarantined with an owner and a date. On one suite that analysis showed ten percent of failures were a real race condition in the application that had been dismissed as flakiness for months.",
+p:["Adding a global retry policy, which converts real intermittent defects into green builds",
+"Deleting a flaky test instead of diagnosing it, which silently removes real coverage",
+"Trusting AI self healing without reviewing the heal, so a test passes against the wrong element"]},
+
+{id:"AT-3.10",tr:"aut",lv:3,t:"Security testing automation",
+k:["owasp","sast","dast","sca","zap","secrets","dependency scanning","shift left security"],
+d:["Security automation means putting repeatable security checks into the pipeline so that whole classes of vulnerability are caught on every commit rather than in an annual penetration test. It does not replace penetration testing; it removes the mechanical findings so human testers spend their time on business logic flaws that no scanner understands.",
+"The layers, in the order they belong in a pipeline. Secret scanning on every commit and across git history, because a leaked key is the fastest total compromise available. SCA, software composition analysis, checks your declared dependencies against vulnerability databases, and this matters most because most application code is third party code. SAST, static application security testing, analyses source without running it and catches injection patterns, weak cryptography and unsafe deserialisation, at the cost of a real false positive rate that must be triaged rather than ignored. DAST, dynamic application security testing with a tool such as OWASP ZAP, attacks the running application and finds what only exists at runtime: missing security headers, cookie flags, verbose error pages, reflected inputs, exposed endpoints. Then your own functional security tests, which are the ones scanners cannot write: authentication, authorisation and session logic.",
+"That last layer deserves emphasis because it is where the real breaches happen and where a tester adds the most value. Broken access control has been the top OWASP category, and it is not detectable by a scanner because only you know that learner A must not read learner B's certificate. Those checks are ordinary API tests with a security assertion: request another user's resource ID with your own valid token and assert 403, not 200. Do the same for role escalation, for direct object references in URLs and payloads, for the token of a logged out session, for an expired token, and for a token from a different tenant. Add rate limiting and lockout assertions on login and OTP endpoints. Add header and cookie assertions. Every one of those runs in milliseconds and blocks a merge.",
+"Two pipeline design points. Break the build on new critical and high findings only, otherwise inherited legacy findings mean the gate is disabled within a week. And maintain a triaged suppression list with a reason and an expiry, so accepted findings are decisions with owners rather than silence."],
+s:["Adopt the OWASP Top Ten as the coverage checklist, with broken access control first",
+"Add secret scanning on every commit and across the full git history",
+"Add software composition analysis on dependencies and fail on new critical vulnerabilities",
+"Add static application security testing on source, and triage false positives rather than ignoring the tool",
+"Add dynamic scanning with a tool such as OWASP ZAP against a deployed running build",
+"Assert security headers, cookie flags, TLS configuration and absence of verbose error output",
+"Write your own authorisation tests: request another user's resource with your own token and assert 403",
+"Test role escalation, direct object references, expired and logged out tokens, and cross tenant access",
+"Assert rate limiting and account lockout on login, OTP and password reset endpoints",
+"Break the build on new critical and high findings, and keep a triaged suppression list with expiry",
+"Keep manual penetration testing for business logic flaws that automation cannot reason about"],
+ex:"On a learning platform, certificates were served from an endpoint taking a certificate ID. The UI only ever requested your own, so every functional test passed. An automated authorisation test was added that logged in as learner A and requested learner B's certificate ID with A's valid token, expecting 403. It returned 200 with a full PDF containing another learner's name, course and email. The same pattern was then templated across eleven endpoints and found two more, including one that exposed payment invoices. All three had passed every scanner, because no scanner knows which learner owns which certificate. The suite kept those eleven authorisation tests in the pull request gate, where they run in under two seconds.",
+iv:"I put security checks into the pipeline in layers. Secret scanning on every commit including history, software composition analysis on dependencies, static analysis on source, and dynamic scanning with something like OWASP ZAP against a deployed build. I fail the build only on new critical and high findings, and keep a triaged suppression list with reasons and expiry, otherwise inherited legacy findings get the gate switched off within a week. The layer I care most about is the one scanners cannot do: authorisation logic. Broken access control is the top OWASP category and it is business specific, so I write it as ordinary API tests. On a learning platform I logged in as one learner and requested another learner's certificate ID with my own valid token, expecting 403, and got 200 with a full PDF containing someone else's name and email. Templating that pattern across eleven endpoints found two more, including exposed payment invoices. Every scanner had passed, because no tool knows which learner owns which certificate. Those tests now sit in the pull request gate and run in under two seconds.",
+p:["Treating a clean scanner report as security assurance when broken access control is invisible to scanners",
+"Failing the build on all findings including inherited legacy ones, so the team disables the gate",
+"Running dynamic scans against production or without written authorisation",
+"Suppressing findings with no reason, owner or expiry, which turns risk acceptance into silence"]}
+);
+var LV = {
+  man: {1:"Foundations", 2:"Working craft", 3:"Lead level"},
+  aut: {1:"Groundwork", 2:"Framework craft", 3:"Scale and pipeline"}
+};
+var TR = {man:"Manual testing", aut:"Automation testing"};
+var COL = {
+  man:{fill:"#DCEEEB", stroke:"#0E6A61", tx:"#08423C", node:"#0E6A61", nodetx:"#EAF6F4", line:"#2FA394"},
+  aut:{fill:"#E4E3F6", stroke:"#4740A8", tx:"#2A2569", node:"#4740A8", nodetx:"#EFEEFB", line:"#8A82E8"}
+};
+var state = {track:"all", level:0, q:"", sel:null};
+var C = window.C;
+
+function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function byId(id){ for(var i=0;i<C.length;i++){ if(C[i].id===id) return C[i]; } return null; }
+
+function matches(c){
+  if(state.track!=="all" && c.tr!==state.track) return false;
+  if(state.level!==0 && c.lv!==state.level) return false;
+  if(state.q){
+    var blob = (c.id+" "+c.t+" "+c.d.join(" ")+" "+c.s.join(" ")+" "+c.ex+" "+c.iv+" "+c.p.join(" ")+" "+c.k.join(" ")).toLowerCase();
+    if(blob.indexOf(state.q)<0) return false;
+  }
+  return true;
+}
+function filtered(){ return C.filter(matches); }
+
+/* ---------- mind map ---------- */
+function svgEl(n,a){
+  var e = document.createElementNS("http://www.w3.org/2000/svg", n);
+  for(var k in a){ e.setAttribute(k, a[k]); }
+  return e;
+}
+function curve(x1,y1,x2,y2){
+  var mx = (x1+x2)/2;
+  return "M"+x1+" "+y1+" C"+mx+" "+y1+", "+mx+" "+y2+", "+x2+" "+y2;
+}
+function trunc(s,n){ return s.length>n ? s.slice(0,n-1)+"\u2026" : s; }
+
+var GEO = {
+  man:{leafX:20, leafW:280, nodeX:430, nodeW:100, anchor:"end"},
+  aut:{leafX:1140, leafW:280, nodeX:910, nodeW:100, anchor:"start"}
+};
+var ROOT = {x:630, w:180};
+
+function drawMap(){
+  var map = document.getElementById("map");
+  while(map.childNodes.length>2) map.removeChild(map.lastChild);
+
+  var items = filtered();
+  document.getElementById("mapcount").textContent = items.length + " of " + C.length + " concepts shown";
+
+  var PITCH = 30, GAP = 26, TOP = 34;
+  var plan = {}, maxY = TOP;
+
+  ["man","aut"].forEach(function(tr){
+    var y = TOP, groups = [];
+    [1,2,3].forEach(function(lv){
+      var leaves = items.filter(function(c){ return c.tr===tr && c.lv===lv; });
+      if(!leaves.length) return;
+      var start = y;
+      leaves.forEach(function(c){ c._y = y; y += PITCH; });
+      groups.push({lv:lv, leaves:leaves, mid:(start + y - PITCH)/2});
+      y += GAP;
+    });
+    plan[tr] = groups;
+    if(y>maxY) maxY = y;
+  });
+
+  var H = Math.max(maxY + 20, 240);
+  var rootY = H/2 - 10;
+  map.setAttribute("viewBox", "0 0 1440 " + H);
+
+  ["man","aut"].forEach(function(tr){
+    var g = GEO[tr], col = COL[tr], groups = plan[tr];
+    groups.forEach(function(grp){
+      var nx = tr==="man" ? g.nodeX + g.nodeW : g.nodeX;
+      var rx = tr==="man" ? ROOT.x : ROOT.x + ROOT.w;
+      map.appendChild(svgEl("path",{d:curve(rx, rootY, nx, grp.mid), "class":"branchline", stroke:col.line, "stroke-width":2, "stroke-opacity":.85}));
+
+      grp.leaves.forEach(function(c){
+        var lx = tr==="man" ? g.leafX + g.leafW : g.leafX;
+        map.appendChild(svgEl("path",{d:curve(nx, grp.mid, lx, c._y+12), "class":"branchline", stroke:col.line, "stroke-width":1, "stroke-opacity":.4}));
+      });
+
+      var nodeG = svgEl("g",{});
+      nodeG.appendChild(svgEl("rect",{x:g.nodeX, y:grp.mid-19, width:g.nodeW, height:38, rx:3, fill:col.node, stroke:col.line, "stroke-width":.5}));
+      var nt = svgEl("text",{x:g.nodeX+g.nodeW/2, y:grp.mid-3, "text-anchor":"middle", "font-size":"11", "font-weight":"700", fill:col.nodetx, "letter-spacing":".14em"});
+      nt.textContent = "LEVEL "+grp.lv;
+      var nt2 = svgEl("text",{x:g.nodeX+g.nodeW/2, y:grp.mid+13, "text-anchor":"middle", "font-size":"12", fill:col.nodetx, "fill-opacity":".82"});
+      nt2.setAttribute("font-family","Newsreader, Georgia, serif");
+      nt2.textContent = LV[tr][grp.lv];
+      nodeG.appendChild(nt); nodeG.appendChild(nt2);
+      map.appendChild(nodeG);
+
+      grp.leaves.forEach(function(c){
+        var lg = svgEl("g",{"class":"leaf"+(state.sel===c.id?" on":""), tabindex:"0", role:"button"});
+        lg.appendChild(svgEl("rect",{x:g.leafX, y:c._y, width:g.leafW, height:24, rx:3, fill:col.fill, stroke:col.stroke, "stroke-width":.75}));
+        var t = svgEl("text",{
+          x: tr==="man" ? g.leafX+g.leafW-12 : g.leafX+12,
+          y: c._y+16.5, "text-anchor":g.anchor, "font-size":"13", fill:col.tx
+        });
+        t.setAttribute("font-family","Newsreader, Georgia, serif");
+        t.textContent = trunc(c.t, 46);
+        lg.appendChild(t);
+        var ttl = svgEl("title",{});
+        ttl.textContent = c.id+" "+c.t;
+        lg.appendChild(ttl);
+        lg.addEventListener("click", function(){ select(c.id, true); });
+        lg.addEventListener("keydown", function(e){ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); select(c.id, true); } });
+        map.appendChild(lg);
+      });
+    });
+  });
+
+  var rg = svgEl("g",{});
+  rg.appendChild(svgEl("rect",{x:ROOT.x, y:rootY-23, width:ROOT.w, height:46, rx:3, fill:"#B98A21", stroke:"#DCB552", "stroke-width":.5}));
+  var r1 = svgEl("text",{x:ROOT.x+ROOT.w/2, y:rootY-3, "text-anchor":"middle", "font-size":"14", "font-weight":"700", fill:"#1E1502", "letter-spacing":".06em"});
+  r1.textContent = "SOFTWARE TESTING";
+  var r2 = svgEl("text",{x:ROOT.x+ROOT.w/2, y:rootY+14, "text-anchor":"middle", "font-size":"11", fill:"#3A2A05", "letter-spacing":".12em"});
+  r2.textContent = "LOW \u2192 HIGH";
+  rg.appendChild(r1); rg.appendChild(r2);
+  map.appendChild(rg);
+}
+
+/* ---------- blocks ---------- */
+function blocks(c, compact){
+  var h = "";
+  h += '<div class="blk"><p class="blabel">Deep explanation</p>';
+  c.d.forEach(function(par){ h += "<p>"+esc(par)+"</p>"; });
+  h += "</div>";
+
+  h += '<div class="blk"><p class="blabel">How it is done, step by step</p><ol class="steps">';
+  c.s.forEach(function(st){ h += "<li>"+esc(st)+"</li>"; });
+  h += "</ol></div>";
+
+  h += '<div class="blk"><div class="ex"><p class="who">Real project example</p><p>'+esc(c.ex)+"</p></div></div>";
+
+  h += '<div class="blk"><p class="blabel">Interview answer, spoken out loud</p><div class="iv">'+esc(c.iv)+"</div></div>";
+
+  h += '<div class="blk"><p class="blabel">What gets people marked down</p><ul class="pits">';
+  c.p.forEach(function(x){ h += "<li>"+esc(x)+"</li>"; });
+  h += "</ul></div>";
+
+  if(!compact){
+    h += '<div class="blk"><p class="blabel">Keywords</p><div class="tags">';
+    c.k.forEach(function(x){ h += '<span class="tag">'+esc(x)+"</span>"; });
+    h += "</div></div>";
+  }
+  return h;
+}
+
+/* ---------- reader ---------- */
+function renderReader(){
+  var list = filtered();
+  var c = state.sel ? byId(state.sel) : null;
+  if(!c || !matches(c)) c = list[0] || null;
+  var box = document.getElementById("reader");
+  if(!c){
+    box.innerHTML = '<div class="cbody"><p class="miss">Nothing matches that filter. Clear the search or widen the track and level.</p></div>';
+    document.getElementById("prev").style.visibility="hidden";
+    document.getElementById("next").style.visibility="hidden";
+    return;
+  }
+  state.sel = c.id;
+  box.innerHTML =
+    '<div class="chead"><p class="crumb">'+TR[c.tr]+" &middot; Level "+c.lv+" &middot; "+LV[c.tr][c.lv]+'</p>'+
+    '<span class="cid '+c.tr+'">'+c.id+"</span><h2>"+esc(c.t)+"</h2></div>"+
+    '<div class="cbody">'+blocks(c,false)+"</div>";
+
+  var i = list.findIndex(function(x){ return x.id===c.id; });
+  var pv = document.getElementById("prev"), nx = document.getElementById("next");
+  if(i>0){ pv.style.visibility="visible"; pv.innerHTML = "&larr; previous<span>"+esc(list[i-1].t)+"</span>"; pv.dataset.go=list[i-1].id; }
+  else pv.style.visibility="hidden";
+  if(i<list.length-1){ nx.style.visibility="visible"; nx.innerHTML = "next &rarr;<span>"+esc(list[i+1].t)+"</span>"; nx.dataset.go=list[i+1].id; }
+  else nx.style.visibility="hidden";
+}
+
+/* ---------- full reference ---------- */
+function renderAll(){
+  var list = filtered(), h = "";
+  ["man","aut"].forEach(function(tr){
+    [1,2,3].forEach(function(lv){
+      var g = list.filter(function(c){ return c.tr===tr && c.lv===lv; });
+      if(!g.length) return;
+      h += '<div class="grp"><div class="gbar"><h3>'+TR[tr]+" \u2014 L"+lv+" "+LV[tr][lv]+'</h3><span class="rule"></span><span class="ct">'+g.length+"</span></div>";
+      g.forEach(function(c){
+        h += '<details class="ent" id="e-'+c.id+'"><summary><span class="n">'+c.id+"</span>"+esc(c.t)+'<span class="arw">&rsaquo;</span></summary><div class="entbody">'+blocks(c,true)+"</div></details>";
+      });
+      h += "</div>";
+    });
+  });
+  document.getElementById("all").innerHTML = h || '<p class="miss">Nothing matches that filter.</p>';
+}
+
+function select(id, scroll){
+  state.sel = id;
+  renderReader();
+  drawMap();
+  try{ if(location.hash.slice(1)!==id) history.replaceState(null,"","#"+id); }catch(err){}
+  if(scroll){
+    var y = document.querySelector(".readsec").getBoundingClientRect().top + window.pageYOffset - 70;
+    window.scrollTo({top:y, behavior: (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) ? "auto" : "smooth"});
+  }
+}
+function redraw(){ drawMap(); renderReader(); renderAll(); }
+
+/* ---------- controls ---------- */
+function setTrack(t){
+  state.track = t;
+  ["all","man","aut"].forEach(function(k){ document.getElementById("t-"+k).setAttribute("aria-pressed", k===t?"true":"false"); });
+  redraw();
+}
+function setLevel(l){
+  state.level = l;
+  [0,1,2,3].forEach(function(k){ document.getElementById("l-"+k).setAttribute("aria-pressed", k===l?"true":"false"); });
+  redraw();
+}
+["all","man","aut"].forEach(function(k){ document.getElementById("t-"+k).addEventListener("click", function(){ setTrack(k); }); });
+[0,1,2,3].forEach(function(k){ document.getElementById("l-"+k).addEventListener("click", function(){ setLevel(k); }); });
+
+var qEl = document.getElementById("q");
+qEl.addEventListener("input", function(){ state.q = qEl.value.trim().toLowerCase(); redraw(); });
+
+document.getElementById("prev").addEventListener("click", function(){ if(this.dataset.go) select(this.dataset.go, true); });
+document.getElementById("next").addEventListener("click", function(){ if(this.dataset.go) select(this.dataset.go, true); });
+
+var openAll = false;
+document.getElementById("expand").addEventListener("click", function(){
+  openAll = !openAll;
+  document.querySelectorAll("details.ent").forEach(function(d){ d.open = openAll; });
+  this.textContent = openAll ? "Close all" : "Open all";
+  this.setAttribute("aria-pressed", openAll ? "true" : "false");
+});
+document.getElementById("prn").addEventListener("click", function(){ window.print(); });
+window.addEventListener("beforeprint", function(){ document.querySelectorAll("details.ent").forEach(function(d){ d.open = true; }); });
+
+document.addEventListener("keydown", function(e){
+  if(e.target.tagName==="INPUT" || e.target.tagName==="TEXTAREA") return;
+  if(e.key!=="ArrowLeft" && e.key!=="ArrowRight") return;
+  var list = filtered(), i = list.findIndex(function(x){ return x.id===state.sel; });
+  if(i<0) return;
+  var j = e.key==="ArrowRight" ? i+1 : i-1;
+  if(j>=0 && j<list.length) select(list[j].id, false);
+});
+
+/* ---------- boot ---------- */
+var totalSteps = C.reduce(function(a,c){ return a + c.s.length; }, 0);
+document.getElementById("stepct").textContent = totalSteps;
+var hash = location.hash.slice(1);
+state.sel = (hash && byId(hash)) ? hash : C[0].id;
+redraw();
+</script>
+</body>
+</html>
