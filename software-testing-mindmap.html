@@ -54,6 +54,9 @@ a{color:inherit}
 .srch:focus,.chip:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
 .sep{width:1px;height:22px;background:#3A404C}
 
+/* author */
+.author{position:absolute;top:24px;right:24px;font-family:var(--mno);font-size:12px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--brass)}
+
 /* mind map */
 .mapsec{background:var(--ink);padding:0 0 8px}
 .mapnote{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:20px 0 10px}
@@ -155,7 +158,8 @@ footer b{color:#E6E9E4;font-weight:500}
 <body>
 
 <header class="mast">
-  <div class="wrap">
+  <div class="wrap" style="position:relative">
+    <p class="author">Author: Pratham</p>
     <p class="eyebrow">QA reference sheet &middot; 53 concepts &middot; manual + automation</p>
     <h1>Software testing, <em>from first principles to the pipeline</em></h1>
     <p class="lede">Every concept below is laid out in the order you should actually learn it. Click any leaf on the map to read the deep explanation, the step-by-step process, a real project example, and the answer you would give out loud in an interview.</p>
